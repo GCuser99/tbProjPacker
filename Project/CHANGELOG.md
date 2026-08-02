@@ -1,2 +1,5 @@
+# Change Log
 
-# put your change log here
+[v1.0.0.0, 02 Aug 2026]
+
+ - Initial publication

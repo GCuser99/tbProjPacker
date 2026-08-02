@@ -1,5 +1,5 @@
 Private Module modTest
-    Sub UnpackTwinProj()
+    Private Sub UnpackTwinProj()
         Dim inProjFilePath As String
         Dim outProjFolderPath As String
         
@@ -8,28 +8,16 @@ Private Module modTest
         
         ' Run Unpack with cleanFirst
         Dim pp As New ProjPacker
-        If pp.Unpack(inputFile:=inProjFilePath, outputDir:=outProjFolderPath, cleanFirst:=True) Then
-            Debug.Print "Success"
-        Else
-            Debug.Print "Fail"
-        End If
+        Debug.Assert pp.Unpack(inputFile:=inProjFilePath, outputDir:=outProjFolderPath, cleanFirst:=True)
         
         ' Run Unpack with cleanFirst and logging
-        If pp.Unpack(inputFile:=inProjFilePath, outputDir:=outProjFolderPath, logfile:=".\log.txt", cleanFirst:=True) Then
-            Debug.Print "Success"
-        Else
-            Debug.Print "Fail"
-        End If
+        Debug.Assert pp.Unpack(inputFile:=inProjFilePath, outputDir:=outProjFolderPath, logfile:=".\log.txt", cleanFirst:=True)
         
         ' Run Test with logging
-        If pp.Test(samplePath:=inProjFilePath, logFile:=".\log.txt") Then
-            Debug.Print "Success"
-        Else
-            Debug.Print "Fail"
-        End If
+        Debug.Assert pp.Test(samplePath:=inProjFilePath, logFile:=".\log.txt")
     End Sub
     
-    Sub PackTwinProj()
+    Private Sub PackTwinProj()
         Dim inProjFolderPath As String
         Dim outProjFilePath As String
         
@@ -38,18 +26,10 @@ Private Module modTest
         
         Dim pp As New ProjPacker
         'Run Pack with overwrite and logging
-        If pp.Pack(inputDir:=inProjFolderPath, outputFile:=outProjFilePath, logfile:=".\log.txt", overwrite:=True) Then
-            Debug.Print "Success"
-        Else
-            Debug.Print "Fail"
-        End If
+        Debug.Assert pp.Pack(inputDir:=inProjFolderPath, outputFile:=outProjFilePath, logfile:=".\log.txt", overwrite:=True)
         
-        'Run Pack without overwrite and with logging
-        If pp.Pack(inputDir:=inProjFolderPath, outputFile:=outProjFilePath, logfile:=".\log.txt") Then
-            Debug.Print "Success"
-        Else
-            Debug.Print "Fail"
-        End If
+        'Run Pack without overwrite and with logging - should return False (fail) because .twinproj already exists and overwrite:=False
+        Debug.Assert Not pp.Pack(inputDir:=inProjFolderPath, outputFile:=outProjFilePath, logfile:=".\log.txt")
     End Sub
 
 End Module
