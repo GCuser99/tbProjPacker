@@ -1,0 +1,45 @@
+Module MyModule
+    Sub UnpackTwinProj()
+    
+        Dim inProjFilePath As String
+        Dim outProjFolderPath As String
+        
+        inProjFilePath = BuildPath(GetSpecialFolder(sfDocuments), "GitHub\tbImportExport\tbImportExport.twinproj")
+        outProjFolderPath = BuildPath(GetSpecialFolder(sfDocuments), "GitHub\tbImportExport\Project")
+        
+        DeleteFolder outProjFolderPath, ignoreMissing:=True
+        
+        ' Run unpack
+ 
+        Dim ie As New ImpExp
+        If ie.Unpack(inputFile:=inProjFilePath, outputDir:=outProjFolderPath) Then
+            Debug.Print "Sucess"
+        Else
+            Debug.Print "Fail"
+        End If
+        
+        'DeleteFolder outProjFolderPath, ignoreMissing:=True
+        
+        ' Run unpack
+ 
+        If ie.Unpack(inputFile:=inProjFilePath, outputDir:=outProjFolderPath, logfile:=".log.txt", cleanFirst:=True) Then
+            Debug.Print "Sucess"
+        Else
+            Debug.Print "Fail"
+        End If
+        
+        If ie.Test(samplePath:=inProjFilePath, logFile:=".log.txt") Then
+            Debug.Print "Sucess"
+        Else
+            Debug.Print "Fail"
+        End If
+        
+        If ie.Pack(inputDir:=outProjFolderPath, outputFile:=".\test_pack.twinproj", logfile:=".log.txt", overwrite:=True) Then
+            Debug.Print "Sucess"
+        Else
+            Debug.Print "Fail"
+        End If
+        
+    End Sub
+
+End Module
