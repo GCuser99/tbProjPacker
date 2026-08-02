@@ -16,6 +16,7 @@ Exactly three functions, all on the `ProjPacker` class, all returning `Boolean`
 
 ```vba
 Dim pp As New ProjPacker
+Dim ok As Boolean
 
 ' Pack a directory tree into a .twinproj / .twinpack file.
 ok = pp.Pack(inputDir, outputFile, [overwrite], [logFile])
