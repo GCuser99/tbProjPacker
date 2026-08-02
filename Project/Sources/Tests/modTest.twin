@@ -15,6 +15,19 @@ Private Module modTest
         
         ' Run Test with logging
         Debug.Assert pp.Test(samplePath:=inProjFilePath, logFile:=".\log.txt")
+        
+        Dim lineText As String
+        Dim fileNum As Integer
+
+        fileNum = FreeFile
+
+        Open ".\log.txt" For Input As #fileNum
+        Do Until EOF(fileNum)
+            Line Input #fileNum, lineText
+        Loop
+        Close #fileNum
+        
+        Debug.Assert lineText = "17/17 tests passed."
     End Sub
     
     Private Sub PackTwinProj()
@@ -30,6 +43,19 @@ Private Module modTest
         
         'Run Pack without overwrite and with logging - should return False (fail) because .twinproj already exists and overwrite:=False
         Debug.Assert Not pp.Pack(inputDir:=inProjFolderPath, outputFile:=outProjFilePath, logfile:=".\log.txt")
-    End Sub
+        
+        Dim lineText As String
+        Dim fileNum As Integer
 
+        fileNum = FreeFile
+
+        Open ".\log.txt" For Input As #fileNum
+        Do Until EOF(fileNum)
+            Line Input #fileNum, lineText
+        Loop
+        Close #fileNum
+        
+        Debug.Assert Left$(lineText, 11) = "Pack failed"
+    End Sub
+        
 End Module
