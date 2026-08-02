@@ -1,8 +1,8 @@
 # tbProjPacker — twinBASIC package
 
 A twinBASIC package for packing and unpacking twinproj/twinpack files, with
-no command-line dependency. Reference the package and call `ImpExp.Pack`,
-`ImpExp.Unpack`, and `ImpExp.Test` directly from twinBASIC code.
+no command-line dependency. Reference the package and call `ProjPacker.Pack`,
+`ProjPacker.Unpack`, and `ProjPacker.Test` directly from twinBASIC code.
 
 This is the package counterpart to the [ImpExp console
 app](https://github.com/GCuser99/tbImportExport). Same core logic; a
