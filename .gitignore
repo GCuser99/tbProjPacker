@@ -1,4 +1,5 @@
 # User-specific files
 COM_Registry_Log.txt
 Dev/
-test package.twinproj
+test_pack.twinproj
+log.txt
