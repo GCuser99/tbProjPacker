@@ -1,4 +1,4 @@
-# ImpExp — twinBASIC package
+# tbProjPacker — twinBASIC package
 
 A twinBASIC package for packing and unpacking twinproj/twinpack files, with
 no command-line dependency. Reference the package and call `ImpExp.Pack`,
@@ -11,20 +11,20 @@ package is a clean build, not a wrapper around the CLI.
 
 ## Public surface
 
-Exactly three functions, all on the `ImpExp` class, all returning `Boolean`
+Exactly three functions, all on the `ProjPacker` class, all returning `Boolean`
 (`True` on success, `False` on failure):
 
 ```vba
-Dim ie As New ImpExp
+Dim pp As New ProjPacker
 
 ' Pack a directory tree into a .twinproj / .twinpack file.
-ok = ie.Pack(inputDir, outputFile, [overwrite], [logFile])
+ok = pp.Pack(inputDir, outputFile, [overwrite], [logFile])
 
 ' Unpack a .twinproj / .twinpack file into a directory tree.
-ok = ie.Unpack(inputFile, outputDir, [cleanFirst], [logFile])
+ok = pp.Unpack(inputFile, outputDir, [cleanFirst], [logFile])
 
 ' Run the self-test suite against a sample .twinproj / .twinpack.
-ok = ie.Test(samplePath, [logFile])
+ok = pp.Test(samplePath, [logFile])
 ```
 
 ### Arguments
@@ -50,8 +50,8 @@ A caller that only needs a yes/no checks the return value; a caller that
 wants the reason reads the log or the immediate window.
 
 ```vba
-Dim ie As New ImpExp
-If Not ie.Pack("C:\proj\MyApp", "C:\out\MyApp.twinproj") Then
+Dim pp As New ProjPacker
+If Not pp.Pack("C:\proj\MyApp", "C:\out\MyApp.twinproj") Then
     ' something went wrong -- reason was printed to Debug and, if a
     ' logFile was supplied, written there.
 End If
@@ -105,7 +105,7 @@ convenience for a tidy result.
 
 | File | Scope | Contents |
 |---|---|---|
-| `ImpExp.twin` | **Public class** | The only public surface: `Pack`, `Unpack`, `Test`. |
+| `ProjPacker.twin` | **Public class** | The only public surface: `Pack`, `Unpack`, `Test`. |
 | `modOutput.twin` | Private module | `Say` sink: `Debug.Print` + optional UTF-8 log file. |
 | `modImpExp.twin` | Private module | Parser, serializer, import, export. |
 | `modShared.twin` | Private module | UTF-8, path/filesystem helpers, ordinal sort. |
@@ -115,7 +115,7 @@ convenience for a tidy result.
 | `ByteBuffer.twin` | Private class | Append-only output buffer. |
 | `ByteReader.twin` | Private class | Bounds-checked little-endian cursor. |
 
-Only `ImpExp` is public. Everything else is private to the package, so it
+Only `ProjPacker` is public. Everything else is private to the package, so it
 won't collide with members of the referencing project.
 
 ## License
