@@ -108,8 +108,12 @@ convenience for a tidy result.
 | `ByteBuffer.twin` | Private class | Append-only output buffer. |
 | `ByteReader.twin` | Private class | Bounds-checked little-endian cursor. |
 
-Only `ProjPacker` is public. Everything else is private to the package, so it
+Only `ProjPacker.twin` is public. Everything else is private to the package, so it
 won't collide with members of the referencing project.
+
+## How to reference a twinBASIC Package
+
+<img src="https://github.com/GCuser99/tbProjPacker/blob/main/Images/PackageRef.png" alt="Package" width=75%>
 
 ## License
 
