@@ -1,6 +1,6 @@
-# tbProjPacker — twinBASIC package
+# tbProjPacker — twinBASIC Package
 
-A twinBASIC package for packing and unpacking twinproj/twinpack files. Reference `tbProjPacker` from the twinBASIC Package Server and call `ProjPacker.Pack`,
+A twinBASIC Package for packing and unpacking twinproj/twinpack files. Reference `tbProjPacker` from the twinBASIC Package Server and call `ProjPacker.Pack`,
 `ProjPacker.Unpack`, and `ProjPacker.Test` directly from twinBASIC code.
 
 This is the package counterpart to the [ImpExp console
@@ -9,7 +9,7 @@ different, in-code surface.
 
 ## Public surface
 
-Exactly three functions, all on the `ProjPacker` class, all returning `Boolean`
+Three functions, all on the `ProjPacker` class, all returning `Boolean`
 (`True` on success, `False` on failure):
 
 ```vba
