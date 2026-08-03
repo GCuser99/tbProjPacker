@@ -120,9 +120,9 @@ The package can be referenced through twinBASIC's Package Server. In the IDE, cl
 
 The usual workflow is: `unpack` a `.twinproj` into a directory tree, commit that tree to a repository, and later `pack` it back into a `.twinproj`. This works well, with one thing worth knowing.
 
-**Git does not track empty directories.** If your project contains empty folders — such as an empty `Sources` or `Resources` — they will not survive a push and pull. They exist in your local tree after `import`, but a fresh clone or pull of that repository will be missing them.
+**Git does not track empty directories.** If your project contains empty folders — such as an empty `Sources` or `Resources` — they will not survive a push and pull. They exist in your local tree after `unpack`, but a fresh clone or pull of that repository will be missing them.
 
-For most folders this is a Git limitation, not a tool limitation, and it is harmless. `export` packs exactly what is present on disk: if an empty folder was dropped by Git, it simply won't be in the resulting `.twinproj`. When you then open that file, **twinBASIC recreates the folders it expects on its own.** The round trip comes out whole because the IDE reconstructs the missing structure, not because the packed file carried it. So don't rely on the packed `.twinproj` to preserve empty folders across a Git round trip — rely on the IDE to regenerate them, which it does.
+For most folders this is a Git limitation, not a tool limitation, and it is harmless. `pack` packs exactly what is present on disk: if an empty folder was dropped by Git, it simply won't be in the resulting `.twinproj`. When you then open that file, **twinBASIC recreates the folders it expects on its own.** The round trip comes out whole because the IDE reconstructs the missing structure, not because the packed file carried it. So don't rely on the packed `.twinproj` to preserve empty folders across a Git round trip — rely on the IDE to regenerate them, which it does.
 
 ### The one exception: Settings
 
