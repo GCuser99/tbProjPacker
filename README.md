@@ -1,13 +1,11 @@
 # tbProjPacker — twinBASIC package
 
-A twinBASIC package for packing and unpacking twinproj/twinpack files, with
-no command-line dependency. Reference the package and call `ProjPacker.Pack`,
+A twinBASIC package for packing and unpacking twinproj/twinpack files. Reference `tbProjPacker` from the twinBASIC Package Server and call `ProjPacker.Pack`,
 `ProjPacker.Unpack`, and `ProjPacker.Test` directly from twinBASIC code.
 
 This is the package counterpart to the [ImpExp console
-app](https://github.com/GCuser99/tbImportExport). Same core logic; a
-different, in-code surface. The two are maintained independently — this
-package is a clean build, not a wrapper around the CLI.
+app](https://github.com/GCuser99/tbImportExport), which itself was ported from the Python version of [Import-Export-Tool](https://docs.twinbasic.com/Features/Packages/Import-Export-Tool). Same core logic; a
+different, in-code surface.
 
 ## Public surface
 
@@ -58,21 +56,15 @@ If Not pp.Pack("C:\proj\MyApp", "C:\out\MyApp.twinproj") Then
 End If
 ```
 
-The one failure surfaced the same way as any other is a log file that can't
-be opened: if you pass a `logFile` and it can't be created, the operation
-does not run and returns `False`. Asking for a log and silently getting none
-would hide a problem, so it's treated as a failure like any other.
-
 ## Output
 
 Every operation always calls `Debug.Print` for its progress and summary
 lines. In the IDE these appear in the immediate window; in a compiled build
 `Debug.Print` is skipped entirely, so it costs nothing. This is the intended
-usage — the package is meant to be driven from the IDE.
+usage — the package is meant to be driven from either the IDE or in compiled code.
 
 Supplying `logFile` additionally writes those same lines to a file, as UTF-8
-with Windows (CRLF) line endings, **overwriting** any existing file (each
-call's log is that call's story). Because project output routinely contains
+with Windows (CRLF) line endings, **overwriting** any existing file. Because project output routinely contains
 non-ASCII file names, the log is written as UTF-8 rather than the native
 codepage.
 
