@@ -116,6 +116,27 @@ The package can be referenced through twinBASIC's Package Server. In the IDE, cl
 
 <img src="https://github.com/GCuser99/tbProjPacker/blob/main/Images/PackageRef.png" alt="Package" width=75%>
 
+## Round-tripping through GitHub
+
+The usual workflow is: `unpack` a `.twinproj` into a directory tree, commit that tree to a repository, and later `pack` it back into a `.twinproj`. This works well, with one thing worth knowing.
+
+**Git does not track empty directories.** If your project contains empty folders — such as an empty `Sources` or `Resources` — they will not survive a push and pull. They exist in your local tree after `import`, but a fresh clone or pull of that repository will be missing them.
+
+For most folders this is a Git limitation, not a tool limitation, and it is harmless. `export` packs exactly what is present on disk: if an empty folder was dropped by Git, it simply won't be in the resulting `.twinproj`. When you then open that file, **twinBASIC recreates the folders it expects on its own.** The round trip comes out whole because the IDE reconstructs the missing structure, not because the packed file carried it. So don't rely on the packed `.twinproj` to preserve empty folders across a Git round trip — rely on the IDE to regenerate them, which it does.
+
+### The one exception: Settings
+
+`Settings` file is different, and `pack` treats it differently. It holds the project name, references, version, and compile options. If it is missing, the IDE cannot reconstruct that content: the project opens with its source intact but its references, name, and version blanked.
+
+So **`pack` refuses to pack a directory tree that has no top-level `Settings` file entry**, rather than produce a misleadingly useless file. It stops before writing anything and reports:
+
+```
+error: Refusing to pack: no 'Settings' entry at the top level of "<dir>". The packed
+file would open without its references, project name, or version.
+```
+
+In practice `Settings` is usually a file (a name with no extension), not a folder, so Git normally carries it fine. This refusal is mainly a guard against a tree where `Settings` genuinely went missing. If you see it after a fresh checkout, restore the `Settings` entry before packing.
+
 ## License
 
 MIT © 2026 GCuser99
