@@ -111,7 +111,7 @@ convenience for a tidy result.
 Only `ProjPacker.twin` is public. Everything else is private to the package, so it
 won't collide with members of the referencing project.
 
-## How to reference a twinBASIC Package
+## How to reference the twinBASIC Package
 The package can be referenced through twinBASIC's Package Server. In the IDE, click References -> Available Packages. Scroll to find "Project (Un)Packer for .twinproj and .twinpack Files" entry and click the checkbox on the left of the entry. Then click "Apply Changes" button in lower-right.
 
 <img src="https://github.com/GCuser99/tbProjPacker/blob/main/Images/PackageRef.png" alt="Package" width=75%>
