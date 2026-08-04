@@ -1,4 +1,4 @@
-' https://github.com/GCuser99/tbImportExport/tree/main
+' https://github.com/GCuser99/tbProjPacker/tree/main
 ' License: MIT
 '
 ' ProjPacker -- public entry points for the twinproj/twinpack unpack/pack
@@ -89,10 +89,10 @@ Public Class ProjPacker
 
         Select Case kind
             Case opPack
-                DoExport AbsPath(arg1), AbsPath(arg2), False, _
+                DoPack AbsPath(arg1), AbsPath(arg2), False, _
                          requireSettings:=True, overwrite:=overwrite
             Case opUnpack
-                DoImport AbsPath(arg1), AbsPath(arg2), False, _
+                DoUnpack AbsPath(arg1), AbsPath(arg2), False, _
                          cleanFirst:=cleanFirst
             Case opTest
                 ' RunSelfTest returns 0 on all-pass, nonzero otherwise.

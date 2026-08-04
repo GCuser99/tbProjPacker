@@ -1,4 +1,4 @@
-' https://github.com/GCuser99/tbImportExport/tree/main
+' https://github.com/GCuser99/tbProjPacker/tree/main
 ' License: MIT
 '
 ' modOutput -- the package's output sink.
@@ -29,7 +29,7 @@ Private Module modOutput
     Private mLogHandle As LongPtr
 
     ' Opens a log file for the current operation with overwrite semantics
-    ' (CREATE_ALWAYS truncates any existing file). Raises IE_ERR_IO on
+    ' (CREATE_ALWAYS truncates any existing file). Raises PP_ERR_IO on
     ' failure: the caller asked for a log, so failing to produce one is an
     ' error, not something to paper over. ApiPath handles long paths.
     Public Sub LogOpen(ByVal path As String)
@@ -43,7 +43,7 @@ Private Module modOutput
         h = CreateFileW(StrPtr(ApiPath(full)), GENERIC_WRITE, 0, sa, _
                         CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0)
         If h = INVALID_HANDLE_VALUE Then
-            Err.Raise IE_ERR_IO, "LogOpen", _
+            Err.Raise PP_ERR_IO, "LogOpen", _
                 "Cannot open log file for writing: """ & full & """"
         End If
 

@@ -1,4 +1,4 @@
-' https://github.com/GCuser99/tbImportExport/tree/main
+' https://github.com/GCuser99/tbProjPacker/tree/main
 ' License: MIT
 '
 ' ByteReader -- little-endian cursor over a byte array.
@@ -39,7 +39,7 @@ Private Class ByteReader
             mErrorText = "Truncated file: wanted " & CStr(count) & _
                          " bytes at offset " & CStr(mPos) & _
                          " but only " & CStr(mLen - mPos) & " remain"
-            Err.Raise IE_ERR_TRUNCATED, "ByteReader", mErrorText
+            Err.Raise PP_ERR_TRUNCATED, "ByteReader", mErrorText
         End If
     End Sub
 

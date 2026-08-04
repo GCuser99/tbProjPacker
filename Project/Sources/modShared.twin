@@ -1,4 +1,4 @@
-' https://github.com/GCuser99/tbImportExport/tree/main
+' https://github.com/GCuser99/tbProjPacker/tree/main
 ' License: MIT
 '
 ' modShared -- platform layer: UTF-8 conversion, directory enumeration,
@@ -8,7 +8,7 @@ Private Module modShared
 
     Option Explicit
     
-    Private Const IE_LONGPATH_THRESHOLD As Long = 248
+    Private Const PP_LONGPATH_THRESHOLD As Long = 248
 
     ' ============================================================== UTF-8 ===
 
@@ -21,7 +21,7 @@ Private Module modShared
         Dim cch As Long
         cch = MultiByteToWideChar(CP_UTF8, 0, VarPtr(b(offset)), length, 0, 0)
         If cch <= 0 Then
-            Err.Raise IE_ERR_BAD_UTF8, "Utf8Decode", "Invalid UTF-8 sequence in file"
+            Err.Raise PP_ERR_BAD_UTF8, "Utf8Decode", "Invalid UTF-8 sequence in file"
         End If
         Dim s As String
         s = String$(cch, vbNullChar)
@@ -36,7 +36,7 @@ Private Module modShared
         Dim cb As Long
         cb = WideCharToMultiByte(CP_UTF8, 0, StrPtr(s), Len(s), 0, 0, 0, ByVal 0)
         If cb <= 0 Then
-            Err.Raise IE_ERR_BAD_UTF8, "Utf8Encode", "Cannot encode string as UTF-8"
+            Err.Raise PP_ERR_BAD_UTF8, "Utf8Encode", "Cannot encode string as UTF-8"
         End If
         ReDim outBuf(0 To cb - 1)
         WideCharToMultiByte CP_UTF8, 0, StrPtr(s), Len(s), VarPtr(outBuf(0)), cb, 0, ByVal 0
@@ -131,7 +131,7 @@ Private Module modShared
         If Len(parent) > 0 And Not IsDirectory(parent) Then EnsureDirectory parent
         If CreateDirectoryW(StrPtr(ApiPath(full)), ByVal vbNullPtr) = 0 Then
             If Not IsDirectory(full) Then
-                Err.Raise IE_ERR_IO, "EnsureDirectory", "Cannot create directory: " & full
+                Err.Raise PP_ERR_IO, "EnsureDirectory", "Cannot create directory: " & full
             End If
         End If
     End Sub
@@ -159,7 +159,7 @@ Private Module modShared
                              ByRef outIsDir() As Boolean, _
                              ByRef outCount As Long)
         
-        'Dim fd As IE_FIND_DATA
+        'Dim fd As PP_FIND_DATA
         Dim fd As WIN32_FIND_DATAW
         Dim h As LongPtr
         Dim pattern As String
@@ -235,7 +235,7 @@ Private Module modShared
     ' recursively delete something dangerously shallow. "C:\" -> 0,
     ' "C:\Downloads" -> 1, "C:\Users\me\proj" -> 3. UNC roots
     ' (\\server\share) count the share as depth 0 as well. Used to guard the
-    ' clean-first delete in DoImport against a fat-fingered target like a
+    ' clean-first delete in DoUnpack against a fat-fingered target like a
     ' drive root.
     Public Function PathDepth(ByVal p As String) As Long
         Dim full As String
@@ -283,7 +283,7 @@ Private Module modShared
     End Function
 
     ' Recursive delete, used by the self-test cleanup and the clean-first
-    ' option in DoImport.
+    ' option in DoUnpack.
     Public Sub DeleteTree(ByVal dirPath As String)
         If Not IsDirectory(dirPath) Then Exit Sub
         Dim names() As String, isDir() As Boolean, n As Long, i As Long
@@ -311,7 +311,7 @@ Private Module modShared
     ' minus 12 for a possible 8.3 name, and one threshold everywhere keeps
     ' the rule simple.
     Public Function ApiPath(ByVal canonicalAbsPath As String) As String
-        If Len(canonicalAbsPath) < IE_LONGPATH_THRESHOLD Then
+        If Len(canonicalAbsPath) < PP_LONGPATH_THRESHOLD Then
             Return canonicalAbsPath
         End If
         ' UNC (\\server\share) becomes \\?\UNC\server\share; the two leading

@@ -1,4 +1,4 @@
-' https://github.com/GCuser99/tbImportExport/tree/main
+' https://github.com/GCuser99/tbProjPacker/tree/main
 ' License: MIT
 '
 ' modSelfTest -- self-test suite.
@@ -154,7 +154,7 @@ Private Module modSelfTest
 
     ' Writes a minimal but valid-looking project tree on disk under the given
     ' name and returns its full path. Includes a top-level "Settings" FILE
-    ' (its real on-disk form) so DoExport's Settings guard is satisfied. Used
+    ' (its real on-disk form) so DoPack's Settings guard is satisfied. Used
     ' by the guard tests and available to any future disk test that needs a
     ' packable tree without depending on the sample.
     Private Function MakeProjectTree(ByVal name As String, ByVal withSettings As Boolean) As String
@@ -246,7 +246,7 @@ Private Module modSelfTest
     ' Sample-driven. Exports the imported sample WITHOUT opting out of the
     ' Settings guard -- so this doubles as real-world coverage that a genuine
     ' project (which has a Settings entry) packs cleanly. If this fails with
-    ' IE_ERR_NO_SETTINGS, the sample lacks a top-level Settings entry, which
+    ' PP_ERR_NO_SETTINGS, the sample lacks a top-level Settings entry, which
     ' would itself be worth knowing.
     Private Sub T_DiskRoundTrip()
         Dim dir1 As String, dir2 As String, rtFile As String
@@ -254,9 +254,9 @@ Private Module modSelfTest
         dir2 = JoinPath(mTmpDir, "import2")
         rtFile = JoinPath(mTmpDir, "roundtrip.bin")
 
-        DoImport mSamplePath, dir1, True
-        DoExport dir1, rtFile, True
-        DoImport rtFile, dir2, True
+        DoUnpack mSamplePath, dir1, True
+        DoPack dir1, rtFile, True
+        DoUnpack rtFile, dir2, True
 
         Dim a As New Collection, b As New Collection
         WalkDisk dir1, "", a
@@ -331,7 +331,7 @@ Private Module modSelfTest
         f.Kind = ekFile
         f.Name = "h.twin"
         f.Revision = 2
-        f.Flags = IE_FLAGS_HIDDEN Or IE_FLAGS_VIRTUAL
+        f.Flags = PP_FLAGS_HIDDEN Or PP_FLAGS_VIRTUAL
         Dim one(0 To 0) As Byte
         one(0) = Asc("x")
         f.SetContent one, 1
@@ -341,7 +341,7 @@ Private Module modSelfTest
         Set tree = New Entry
         tree.Kind = ekDirectory
         tree.Name = "WithFlags"
-        tree.Flags = IE_FLAGS_HIDDEN
+        tree.Flags = PP_FLAGS_HIDDEN
         tree.Children.Add f
 
         Dim buf() As Byte, n As Long
@@ -349,8 +349,8 @@ Private Module modSelfTest
 
         Dim rt As Entry
         Set rt = ParseBuffer(buf, n)
-        AssertEqL rt.Flags, IE_FLAGS_HIDDEN, "root flags"
-        AssertEqL rt.Children.Item(1).Flags, IE_FLAGS_HIDDEN Or IE_FLAGS_VIRTUAL, "file flags"
+        AssertEqL rt.Flags, PP_FLAGS_HIDDEN, "root flags"
+        AssertEqL rt.Children.Item(1).Flags, PP_FLAGS_HIDDEN Or PP_FLAGS_VIRTUAL, "file flags"
     End Sub
 
     ' Unicode names and content survive the UTF-8 layer, and the ordinal
@@ -477,8 +477,8 @@ Caught:
         packFile = JoinPath(mTmpDir, "longpath.bin")
         dstRoot = JoinPath(mTmpDir, "longpath-out")
 
-        DoExport srcRoot, packFile, True, requireSettings:=False
-        DoImport packFile, dstRoot, True
+        DoPack srcRoot, packFile, True, requireSettings:=False
+        DoUnpack packFile, dstRoot, True
 
         ' Walk down the re-imported copy to the same leaf and check bytes.
         Dim reLeaf As String
@@ -500,7 +500,7 @@ Caught:
     ' The Settings guard must REFUSE to pack a tree with no top-level Settings
     ' entry, because the resulting file opens with references, project name,
     ' and version blanked -- verified data loss. Builds a Settings-less tree
-    ' and asserts DoExport raises IE_ERR_NO_SETTINGS and writes nothing.
+    ' and asserts DoPack raises PP_ERR_NO_SETTINGS and writes nothing.
     Private Sub T_SettingsGuardFires()
         Dim d As String
         d = MakeProjectTree("no-settings", False)     ' withSettings = False
@@ -510,12 +510,12 @@ Caught:
 
         On Error GoTo Caught
         ' Default requireSettings:=True -- the guard should fire.
-        DoExport d, outFile, True
+        DoPack d, outFile, True
         On Error GoTo 0
-        Fail "DoExport should have refused a tree with no Settings"
+        Fail "DoPack should have refused a tree with no Settings"
         Exit Sub
 Caught:
-        If Err.Number <> IE_ERR_NO_SETTINGS Then
+        If Err.Number <> PP_ERR_NO_SETTINGS Then
             Fail "wrong error: 0x" & Hex$(Err.Number) & " " & Err.Description
         End If
         ' The guard must abort BEFORE writing -- no partial file left behind.
@@ -536,7 +536,7 @@ Caught:
         outFile = JoinPath(mTmpDir, "with-settings.twinproj")
 
         ' Should succeed without raising. Default requireSettings:=True.
-        DoExport d, outFile, True
+        DoPack d, outFile, True
         AssertTrue PathExists(outFile), "pack with Settings present did not produce a file"
     End Sub
     
@@ -552,17 +552,17 @@ Caught:
         outFile = JoinPath(mTmpDir, "ow.twinproj")
 
         ' First pack creates the file.
-        DoExport d, outFile, True
+        DoPack d, outFile, True
         AssertTrue PathExists(outFile), "first pack did not produce a file"
 
         ' Second pack, default overwrite:=False, must refuse.
         On Error GoTo Caught
-        DoExport d, outFile, True
+        DoPack d, outFile, True
         On Error GoTo 0
-        Fail "DoExport should have refused to overwrite an existing file"
+        Fail "DoPack should have refused to overwrite an existing file"
         Exit Sub
 Caught:
-        If Err.Number <> IE_ERR_TARGET_EXISTS Then
+        If Err.Number <> PP_ERR_TARGET_EXISTS Then
             Fail "wrong error: 0x" & Hex$(Err.Number) & " " & Err.Description
         End If
     End Sub
@@ -576,8 +576,8 @@ Caught:
         Dim outFile As String
         outFile = JoinPath(mTmpDir, "ow2.twinproj")
 
-        DoExport d, outFile, True                     ' create
-        DoExport d, outFile, True, overwrite:=True     ' replace -- must not raise
+        DoPack d, outFile, True                     ' create
+        DoPack d, outFile, True, overwrite:=True     ' replace -- must not raise
         AssertTrue PathExists(outFile), "overwrite pack did not produce a file"
     End Sub
 
@@ -591,13 +591,13 @@ Caught:
         src = MakeProjectTree("clean-src", True)
         Dim packFile As String
         packFile = JoinPath(mTmpDir, "clean.twinproj")
-        DoExport src, packFile, True
+        DoPack src, packFile, True
 
         Dim target As String
         target = JoinPath(mTmpDir, "clean-target")
 
         ' First unpack, then plant a stray file that the pack does not contain.
-        DoImport packFile, target, True
+        DoUnpack packFile, target, True
         Dim junk() As Byte, jn As Long
         Utf8Encode "stale", junk, jn
         Dim strayPath As String
@@ -606,11 +606,11 @@ Caught:
         AssertTrue PathExists(strayPath), "could not plant stray file"
 
         ' Unpack again WITHOUT cleanFirst -- stray should survive.
-        DoImport packFile, target, True
+        DoUnpack packFile, target, True
         AssertTrue PathExists(strayPath), "stray vanished without cleanFirst (unexpected)"
 
         ' Unpack again WITH cleanFirst -- stray must be gone.
-        DoImport packFile, target, True, cleanFirst:=True
+        DoUnpack packFile, target, True, cleanFirst:=True
         AssertTrue Not PathExists(strayPath), "cleanFirst did not remove the stray file"
     End Sub
 
@@ -621,7 +621,7 @@ Caught:
     Private Sub T_CleanFirstDepthGuard()
         ' A depth-1 path: drive root plus one segment. PathDepth = 1 < 2, so
         ' the guard must fire. This directory need not exist as far as the
-        ' depth check is concerned, but DoImport only cleans if IsDirectory is
+        ' depth check is concerned, but DoUnpack only cleans if IsDirectory is
         ' true -- so point at a real shallow dir we create and then leave.
         ' Use the drive of the temp dir to stay on a valid volume.
         Dim drive As String
@@ -629,7 +629,7 @@ Caught:
         Dim shallow As String
         shallow = drive & "\impexp_depthguard_probe"
 
-        ' We do NOT create it -- IsDirectory is false, so DoImport would skip
+        ' We do NOT create it -- IsDirectory is false, so DoUnpack would skip
         ' cleaning entirely and the guard would not be exercised. To actually
         ' hit the guard, create it, and rely on the guard to prevent deletion.
         EnsureDirectory shallow
@@ -638,10 +638,10 @@ Caught:
         Dim src As String
         src = MakeProjectTree("depth-src", True)
         packFile = JoinPath(mTmpDir, "depth.twinproj")
-        DoExport src, packFile, True
+        DoPack src, packFile, True
 
         On Error GoTo Caught
-        DoImport packFile, shallow, True, cleanFirst:=True
+        DoUnpack packFile, shallow, True, cleanFirst:=True
         On Error GoTo 0
         ' If we reach here the guard did NOT fire -- clean up and fail.
         On Error Resume Next
@@ -719,7 +719,7 @@ Caught:
 
     ' cleanFirst must REFUSE a non-empty target that has no top-level Settings
     ' file -- the protection against wiping a folder the user pointed at by
-    ' mistake. Assert it raises IE_ERR_NO_SETTINGS and does NOT delete.
+    ' mistake. Assert it raises PP_ERR_NO_SETTINGS and does NOT delete.
     Private Sub T_CleanRefusesNonProject()
         Dim target As String
         target = MakeShapedFolder("clean-nonproj", 0)      ' no Settings
@@ -729,15 +729,15 @@ Caught:
         Dim src As String, packFile As String
         src = MakeProjectTree("cnp-src", True)
         packFile = JoinPath(mTmpDir, "cnp.twinproj")
-        DoExport src, packFile, True
+        DoPack src, packFile, True
 
         On Error GoTo Caught
-        DoImport packFile, target, True, cleanFirst:=True
+        DoUnpack packFile, target, True, cleanFirst:=True
         On Error GoTo 0
         Fail "cleanFirst should have refused a non-project folder"
         Exit Sub
 Caught:
-        If Err.Number <> IE_ERR_NO_SETTINGS Then
+        If Err.Number <> PP_ERR_NO_SETTINGS Then
             Fail "wrong error: 0x" & Hex$(Err.Number) & " " & Err.Description
         End If
         ' The folder must be untouched -- nothing deleted.
@@ -754,15 +754,15 @@ Caught:
         Dim src As String, packFile As String
         src = MakeProjectTree("csf-src", True)
         packFile = JoinPath(mTmpDir, "csf.twinproj")
-        DoExport src, packFile, True
+        DoPack src, packFile, True
 
         On Error GoTo Caught
-        DoImport packFile, target, True, cleanFirst:=True
+        DoUnpack packFile, target, True, cleanFirst:=True
         On Error GoTo 0
         Fail "cleanFirst should have refused (Settings is a folder, not a file)"
         Exit Sub
 Caught:
-        If Err.Number <> IE_ERR_NO_SETTINGS Then
+        If Err.Number <> PP_ERR_NO_SETTINGS Then
             Fail "wrong error: 0x" & Hex$(Err.Number) & " " & Err.Description
         End If
     End Sub
@@ -785,11 +785,11 @@ Caught:
         Dim src As String, packFile As String
         src = MakeProjectTree("cap-src", True)
         packFile = JoinPath(mTmpDir, "cap.twinproj")
-        DoExport src, packFile, True
+        DoPack src, packFile, True
 
         ' Must not raise. After a clean-unpack, the planted marker (absent
         ' from the pack) must be gone, proving the clean ran.
-        DoImport packFile, target, True, cleanFirst:=True
+        DoUnpack packFile, target, True, cleanFirst:=True
         AssertTrue Not PathExists(markerPath), "clean did not run on a valid project folder"
     End Sub
 
@@ -804,10 +804,10 @@ Caught:
         Dim src As String, packFile As String
         src = MakeProjectTree("cae-src", True)
         packFile = JoinPath(mTmpDir, "cae.twinproj")
-        DoExport src, packFile, True
+        DoPack src, packFile, True
 
         ' Must not raise despite the folder having no Settings -- it is empty.
-        DoImport packFile, target, True, cleanFirst:=True
+        DoUnpack packFile, target, True, cleanFirst:=True
         AssertTrue PathExists(target), "unpack into cleaned empty folder produced nothing"
     End Sub
 
@@ -821,12 +821,12 @@ Caught:
         outFile = JoinPath(mTmpDir, "exp-sfolder.twinproj")
 
         On Error GoTo Caught
-        DoExport d, outFile, True                          ' requireSettings defaults True
+        DoPack d, outFile, True                          ' requireSettings defaults True
         On Error GoTo 0
         Fail "export should have refused (Settings is a folder, not a file)"
         Exit Sub
 Caught:
-        If Err.Number <> IE_ERR_NO_SETTINGS Then
+        If Err.Number <> PP_ERR_NO_SETTINGS Then
             Fail "wrong error: 0x" & Hex$(Err.Number) & " " & Err.Description
         End If
         If PathExists(outFile) Then
@@ -834,8 +834,8 @@ Caught:
         End If
     End Sub
 
-    ' DoImport must reject a missing input file with a clear error, mirroring
-    ' DoExport's input-directory guard.
+    ' DoUnpack must reject a missing input file with a clear error, mirroring
+    ' DoPack's input-directory guard.
     Private Sub T_ImportMissingInput()
         Dim missing As String
         missing = JoinPath(mTmpDir, "does-not-exist.twinproj")
@@ -843,9 +843,9 @@ Caught:
         target = JoinPath(mTmpDir, "imi-target")
 
         On Error GoTo Caught
-        DoImport missing, target, True
+        DoUnpack missing, target, True
         On Error GoTo 0
-        Fail "DoImport should have rejected a missing input file"
+        Fail "DoUnpack should have rejected a missing input file"
         Exit Sub
 Caught:
         If InStr(Err.Description, "not found") = 0 Then

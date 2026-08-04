@@ -1,7 +1,7 @@
-' https://github.com/GCuser99/tbImportExport/tree/main
+' https://github.com/GCuser99/tbProjPacker/tree/main
 ' License: MIT
 '
-' modImpExp -- twinpack/twinproj parser, serializer, importer, exporter.
+' modPackUnpack -- twinpack/twinproj parser, serializer, importer, exporter.
 '
 ' Wire format (all integers little-endian):
 '
@@ -18,7 +18,7 @@
 '     else:
 '       u32  childCount + childCount * entry
 
-Private Module modImpExp
+Private Module modPackUnpack
 
     Option Explicit
 
@@ -29,31 +29,31 @@ Private Module modImpExp
     ' magic is held as its two's-complement signed value. Equality is the
     ' only operation performed on it, so the sign is irrelevant.
     ' If the compiler ever rejects the hex literal, substitute -368335588.
-    Public Const IE_MAGIC As Long = &HEA0BA51C          ' = -368335588
-    Public Const IE_FORMAT_VERSION As Integer = 1
+    Public Const PP_MAGIC As Long = &HEA0BA51C          ' = -368335588
+    Public Const PP_FORMAT_VERSION As Integer = 1
 
-    Public Const IE_FLAGS_NONE As Long = &H0
-    Public Const IE_FLAGS_HIDDEN As Long = &H1
-    Public Const IE_FLAGS_SUPER_HIDDEN As Long = &H2
-    Public Const IE_FLAGS_VIRTUAL As Long = &H4
+    Public Const PP_FLAGS_NONE As Long = &H0
+    Public Const PP_FLAGS_HIDDEN As Long = &H1
+    Public Const PP_FLAGS_SUPER_HIDDEN As Long = &H2
+    Public Const PP_FLAGS_VIRTUAL As Long = &H4
 
-    Public Const IE_CATEGORY_DEFAULT As Byte = &H0
-    Public Const IE_CATEGORY_REFERENCES As Byte = &H1   ' always virtual; never serialized
-    Public Const IE_CATEGORY_RESOURCES As Byte = &H2
-    Public Const IE_CATEGORY_SOURCES As Byte = &H3
-    Public Const IE_CATEGORY_SETTINGS As Byte = &H4
-    Public Const IE_CATEGORY_IMPORTED_TYPELIBS As Byte = &H5
-    Public Const IE_CATEGORY_MISCELLANEOUS As Byte = &H6
-    Public Const IE_CATEGORY_PACKAGES As Byte = &H7
+    Public Const PP_CATEGORY_DEFAULT As Byte = &H0
+    Public Const PP_CATEGORY_REFERENCES As Byte = &H1   ' always virtual; never serialized
+    Public Const PP_CATEGORY_RESOURCES As Byte = &H2
+    Public Const PP_CATEGORY_SOURCES As Byte = &H3
+    Public Const PP_CATEGORY_SETTINGS As Byte = &H4
+    Public Const PP_CATEGORY_IMPORTED_TYPELIBS As Byte = &H5
+    Public Const PP_CATEGORY_MISCELLANEOUS As Byte = &H6
+    Public Const PP_CATEGORY_PACKAGES As Byte = &H7
 
-    Public Const IE_ERR_BAD_MAGIC As Long = vbObjectError + 1001
-    Public Const IE_ERR_BAD_VERSION As Long = vbObjectError + 1002
-    Public Const IE_ERR_TRUNCATED As Long = vbObjectError + 1003
-    Public Const IE_ERR_BAD_UTF8 As Long = vbObjectError + 1004
-    Public Const IE_ERR_IO As Long = vbObjectError + 1005
-    Public Const IE_ERR_NO_SETTINGS As Long = vbObjectError + 1006
-    Public Const IE_ERR_TARGET_EXISTS As Long = vbObjectError + 1007
-    Public Const IE_ERR_SHALLOW_TARGET As Long = vbObjectError + 1008
+    Public Const PP_ERR_BAD_MAGIC As Long = vbObjectError + 1001
+    Public Const PP_ERR_BAD_VERSION As Long = vbObjectError + 1002
+    Public Const PP_ERR_TRUNCATED As Long = vbObjectError + 1003
+    Public Const PP_ERR_BAD_UTF8 As Long = vbObjectError + 1004
+    Public Const PP_ERR_IO As Long = vbObjectError + 1005
+    Public Const PP_ERR_NO_SETTINGS As Long = vbObjectError + 1006
+    Public Const PP_ERR_TARGET_EXISTS As Long = vbObjectError + 1007
+    Public Const PP_ERR_SHALLOW_TARGET As Long = vbObjectError + 1008
 
     Public Enum EntryKindEnum
         ekFile = 1
@@ -62,7 +62,7 @@ Private Module modImpExp
 
     ' Result of an import or export, so callers can report without the
     ' worker having to know how to print.
-    Public Type IE_RESULT
+    Public Type PP_RESULT
         Name      As String
         Size      As Long
         FileCount As Long
@@ -77,13 +77,13 @@ Private Module modImpExp
     ' category 0x01 would confuse the IDE on import.
     Public Function CategoryFor(ByVal name As String) As Byte
         Select Case name
-            Case "Resources":              Return IE_CATEGORY_RESOURCES
-            Case "Sources":                Return IE_CATEGORY_SOURCES
-            Case "Settings":               Return IE_CATEGORY_SETTINGS
-            Case "ImportedTypeLibraries":  Return IE_CATEGORY_IMPORTED_TYPELIBS
-            Case "Miscellaneous":          Return IE_CATEGORY_MISCELLANEOUS
-            Case "Packages":               Return IE_CATEGORY_PACKAGES
-            Case Else:                     Return IE_CATEGORY_DEFAULT
+            Case "Resources":              Return PP_CATEGORY_RESOURCES
+            Case "Sources":                Return PP_CATEGORY_SOURCES
+            Case "Settings":               Return PP_CATEGORY_SETTINGS
+            Case "ImportedTypeLibraries":  Return PP_CATEGORY_IMPORTED_TYPELIBS
+            Case "Miscellaneous":          Return PP_CATEGORY_MISCELLANEOUS
+            Case "Packages":               Return PP_CATEGORY_PACKAGES
+            Case Else:                     Return PP_CATEGORY_DEFAULT
         End Select
     End Function
     
@@ -92,7 +92,7 @@ Private Module modImpExp
     ' same set. "References" is excluded here for the same reason it is
     ' excluded there: it is never serialized.
     '
-    ' Used only by the informational missing-folder note in DoExport. It does
+    ' Used only by the informational missing-folder note in DoPack. It does
     ' NOT drive packing: absent folders stay absent in the output, because a
     ' packer faithfully mirrors the disk and the IDE reconstructs whatever
     ' expected folders are missing when it opens the result. The note exists
@@ -113,10 +113,10 @@ Private Module modImpExp
 
         Dim magic As Long
         magic = rd.ReadLong()
-        If magic <> IE_MAGIC Then
-            Err.Raise IE_ERR_BAD_MAGIC, "ParseBuffer", _
+        If magic <> PP_MAGIC Then
+            Err.Raise PP_ERR_BAD_MAGIC, "ParseBuffer", _
                       "Bad magic: 0x" & Right$("00000000" & Hex$(magic), 8) & _
-                      ", expected 0x" & Right$("00000000" & Hex$(IE_MAGIC), 8)
+                      ", expected 0x" & Right$("00000000" & Hex$(PP_MAGIC), 8)
         End If
 
         Dim entryCount As Long
@@ -132,7 +132,7 @@ Propagate:
         src = Err.Source
         desc = Err.Description
         If Len(rd.ErrorText) > 0 Then
-            num = IE_ERR_TRUNCATED
+            num = PP_ERR_TRUNCATED
             src = "ParseBuffer"
             desc = rd.ErrorText
         End If
@@ -149,10 +149,10 @@ Propagate:
         Dim isRoot As Boolean
         isRoot = (entryCount = 1)
 
-        If isRoot And kind <> IE_FORMAT_VERSION Then
-            Err.Raise IE_ERR_BAD_VERSION, "ReadEntry", _
+        If isRoot And kind <> PP_FORMAT_VERSION Then
+            Err.Raise PP_ERR_BAD_VERSION, "ReadEntry", _
                       "Unsupported file format version: " & CStr(kind) & _
-                      ", expected " & CStr(IE_FORMAT_VERSION)
+                      ", expected " & CStr(PP_FORMAT_VERSION)
         End If
 
         Dim e As Entry
@@ -193,7 +193,7 @@ Propagate:
     Public Function SerializeTree(ByVal root As Entry, ByRef outLen As Long) As Byte()
         Dim bb As ByteBuffer
         Set bb = New ByteBuffer
-        bb.PutLong IE_MAGIC
+        bb.PutLong PP_MAGIC
 
         Dim isFirst As Boolean
         isFirst = True
@@ -238,7 +238,7 @@ Propagate:
             ' Root entry writes the format version; a non-root directory
             ' writes kind = 2.
             If isRoot Then
-                bb.PutInt16 IE_FORMAT_VERSION
+                bb.PutInt16 PP_FORMAT_VERSION
             Else
                 bb.PutInt16 2
             End If
@@ -256,17 +256,17 @@ Propagate:
 
     ' ============================================ import (binary -> disk) ===
 
-    Public Function DoImport(ByVal inputPath As String, _
+    Public Function DoUnpack(ByVal inputPath As String, _
                              ByVal outputDir As String, _
                              ByVal quiet As Boolean, _
-                             Optional ByVal cleanFirst As Boolean = False) As IE_RESULT
-        ' Input-file guard, mirroring DoExport's input-directory guard. Two
+                             Optional ByVal cleanFirst As Boolean = False) As PP_RESULT
+        ' Input-file guard, mirroring DoPack's input-directory guard. Two
         ' checks so the two distinct mistakes get distinct messages.
         If Not PathExists(inputPath) Then
-            Err.Raise IE_ERR_IO, "DoImport", "Input file not found: " & inputPath
+            Err.Raise PP_ERR_IO, "DoUnpack", "Input file not found: " & inputPath
         End If
         If IsDirectory(inputPath) Then
-            Err.Raise IE_ERR_IO, "DoImport", _
+            Err.Raise PP_ERR_IO, "DoUnpack", _
                 "Input is a directory, not a file: " & inputPath
         End If
 
@@ -279,7 +279,7 @@ Propagate:
 
         If Len(outputDir) = 0 Then outputDir = root.Name
 
-        Dim res As IE_RESULT
+        Dim res As PP_RESULT
         res.Name = root.Name
 
         If cleanFirst Then CleanTargetForImport outputDir
@@ -329,7 +329,7 @@ Propagate:
 
         ' Guard 3: shallow target -> refuse.
         If PathDepth(outputDir) < 2 Then
-            Err.Raise IE_ERR_SHALLOW_TARGET, "DoImport", _
+            Err.Raise PP_ERR_SHALLOW_TARGET, "DoUnpack", _
                 "Refusing to clean a shallow path: """ & outputDir & """. " & _
                 "Clean-first will not recursively delete a drive root or a " & _
                 "top-level folder. Choose a deeper target directory."
@@ -340,7 +340,7 @@ Propagate:
         ' folder), so IsFile -- not PathExists -- is the correct test: a
         ' directory named "Settings" must NOT count as proof this is a project.
         If Not IsFile(JoinPath(outputDir, "Settings")) Then
-            Err.Raise IE_ERR_NO_SETTINGS, "DoImport", _
+            Err.Raise PP_ERR_NO_SETTINGS, "DoUnpack", _
                 "Refusing to clean """ & outputDir & """: it is not empty and has " & _
                 "no top-level 'Settings' file, so it does not appear to be an " & _
                 "unpacked project. Delete it yourself if you are sure, or choose " & _
@@ -350,7 +350,7 @@ Propagate:
         DeleteTree outputDir
     End Sub
 
-    Private Sub ExtractEntry(ByVal e As Entry, ByVal parentDir As String, ByRef res As IE_RESULT)
+    Private Sub ExtractEntry(ByVal e As Entry, ByVal parentDir As String, ByRef res As PP_RESULT)
         If e.Kind = ekFile Then
             Dim c() As Byte
             c = e.GetContent()
@@ -370,12 +370,12 @@ Propagate:
 
     ' ============================================ export (disk -> binary) ===
 
-    Public Function DoExport(ByVal inputDir As String, ByVal outputPath As String, _
+    Public Function DoPack(ByVal inputDir As String, ByVal outputPath As String, _
         ByVal quiet As Boolean, _
         Optional ByVal requireSettings As Boolean = True, _
-        Optional ByVal overwrite As Boolean = False) As IE_RESULT
+        Optional ByVal overwrite As Boolean = False) As PP_RESULT
         If Not IsDirectory(inputDir) Then
-            Err.Raise IE_ERR_IO, "DoExport", "Not a directory: " & inputDir
+            Err.Raise PP_ERR_IO, "DoPack", "Not a directory: " & inputDir
         End If
         ' Overwrite guard: the output .twinproj is the source of truth for a
         ' project -- unlike an unpacked tree, there is nothing to regenerate
@@ -384,7 +384,7 @@ Propagate:
         ' refusal does no work and touches nothing.
         If Not overwrite Then
             If PathExists(outputPath) Then
-                Err.Raise IE_ERR_TARGET_EXISTS, "DoExport", _
+                Err.Raise PP_ERR_TARGET_EXISTS, "DoPack", _
                     "Output already exists: """ & outputPath & """. " & _
                     "Refusing to overwrite it. Use the overwrite option (CLI: --force) " & _
                     "to replace it."
@@ -402,7 +402,7 @@ Propagate:
         ' for the synthetic self-tests, which pack trees that legitimately
         ' have no Settings; every real CLI caller uses the default (True).
         If requireSettings And Not HasTopLevelFile(root, "Settings") Then
-            Err.Raise IE_ERR_NO_SETTINGS, "DoExport", _
+            Err.Raise PP_ERR_NO_SETTINGS, "DoPack", _
                 "Refusing to pack: no 'Settings' file at the top level of """ & _
                 inputDir & """. The packed file would open without its references, " & _
                 "project name, or version."
@@ -411,7 +411,7 @@ Propagate:
         Dim length As Long
         buf = SerializeTree(root, length)
         WriteWholeFile outputPath, buf, length
-        Dim res As IE_RESULT
+        Dim res As PP_RESULT
         res.Name = root.Name
         res.Size = length
         Dim i As Long
@@ -477,7 +477,7 @@ Propagate:
     ' directory). Used by the Settings guard: a legitimate project's Settings
     ' is always a file, never a folder, so a directory named "Settings" must
     ' NOT satisfy the guard. This mirrors the on-disk IsFile check that the
-    ' clean-first guard in DoImport uses, keeping the two consistent.
+    ' clean-first guard in DoUnpack uses, keeping the two consistent.
     Private Function HasTopLevelFile(ByVal root As Entry, ByVal name As String) As Boolean
         Dim i As Long
         For i = 1 To root.Children.Count
@@ -488,7 +488,7 @@ Propagate:
         Return False
     End Function
 
-    Private Sub CountEntry(ByVal e As Entry, ByRef res As IE_RESULT)
+    Private Sub CountEntry(ByVal e As Entry, ByRef res As PP_RESULT)
         If e.Kind = ekFile Then
             res.FileCount = res.FileCount + 1
         Else
@@ -506,7 +506,7 @@ Propagate:
         e.Kind = ekDirectory
         e.Name = BaseName(AbsPath(dirPath))
         e.Revision = 0
-        e.Flags = IE_FLAGS_NONE
+        e.Flags = PP_FLAGS_NONE
         e.Category = CategoryFor(e.Name)
 
         Dim names() As String
@@ -551,7 +551,7 @@ Propagate:
             fe.Kind = ekFile
             fe.Name = files(i)
             fe.Revision = 2
-            fe.Flags = IE_FLAGS_NONE
+            fe.Flags = PP_FLAGS_NONE
             fe.Category = CategoryFor(files(i))
             ReadWholeFile JoinPath(dirPath, files(i)), b, n
             fe.SetContent b, n
