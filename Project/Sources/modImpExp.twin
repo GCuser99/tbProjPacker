@@ -260,16 +260,18 @@ Propagate:
                              ByVal outputDir As String, _
                              ByVal quiet As Boolean, _
                              Optional ByVal cleanFirst As Boolean = False) As IE_RESULT
-        Dim data() As Byte
-        Dim length As Long
-        
+        ' Input-file guard, mirroring DoExport's input-directory guard. Two
+        ' checks so the two distinct mistakes get distinct messages.
         If Not PathExists(inputPath) Then
             Err.Raise IE_ERR_IO, "DoImport", "Input file not found: " & inputPath
         End If
         If IsDirectory(inputPath) Then
-            Err.Raise IE_ERR_IO, "DoImport", "Input is a directory, not a file: " & inputPath
+            Err.Raise IE_ERR_IO, "DoImport", _
+                "Input is a directory, not a file: " & inputPath
         End If
-        
+
+        Dim data() As Byte
+        Dim length As Long
         ReadWholeFile inputPath, data, length
 
         Dim root As Entry
@@ -280,22 +282,7 @@ Propagate:
         Dim res As IE_RESULT
         res.Name = root.Name
 
-        ' Clean-first: empty the target before unpacking so no files from a
-        ' previous unpack linger. Only relevant if the target already exists;
-        ' a fresh target has nothing to clean. Overwriting an unpacked tree is
-        ' the safe direction (it is a derived artifact -- the .twinproj is the
-        ' source of truth), so no opt-in is required, but a recursive delete
-        ' driven by an argument still gets a sanity guard: refuse a target so
-        ' shallow it is probably a mistake (drive root, single-level folder).
-        If cleanFirst And IsDirectory(outputDir) Then
-            If PathDepth(outputDir) < 2 Then
-                Err.Raise IE_ERR_SHALLOW_TARGET, "DoImport", _
-                    "Refusing to clean a shallow path: """ & outputDir & """. " & _
-                    "Clean-first will not recursively delete a drive root or a " & _
-                    "top-level folder. Choose a deeper target directory."
-            End If
-            DeleteTree outputDir
-        End If
+        If cleanFirst Then CleanTargetForImport outputDir
 
         EnsureDirectory outputDir
 
@@ -310,6 +297,58 @@ Propagate:
         End If
         Return res
     End Function
+
+    ' Empties outputDir before an import, but only after a series of guards
+    ' that each must pass -- the default at every step is DO NOT DELETE, since
+    ' this is the one operation that recursively removes files.
+    '
+    ' The guards, in order:
+    '   1. Nothing to do if the target does not exist or is not a directory.
+    '      A fresh import has no target yet; clean is a no-op, not an error.
+    '   2. Nothing to do if the target is empty. An empty folder is safe to
+    '      unpack into and there is nothing to clean, so allow it without
+    '      further checks -- this keeps the common "make an empty folder, then
+    '      clean-unpack into it" workflow from tripping the project check.
+    '   3. Refuse a dangerously shallow target (drive root or single-level
+    '      folder) -- a recursive delete there is almost certainly a mistake.
+    '   4. Refuse a NON-EMPTY target that does not look like an unpacked
+    '      project, i.e. one with no top-level "Settings" entry ON DISK. This
+    '      is the key protection: it stops clean-first from wiping a folder the
+    '      user pointed at by mistake (a home folder, a source checkout, etc.).
+    '      The check is against the target on disk -- NOT the incoming archive
+    '      -- because the whole point is to verify the thing being deleted.
+    '
+    ' Only when a target is a non-empty, sufficiently-deep, project-shaped
+    ' directory does DeleteTree run.
+    Private Sub CleanTargetForImport(ByVal outputDir As String)
+        ' Guard 1: no target, or not a directory -> nothing to clean.
+        If Not IsDirectory(outputDir) Then Exit Sub
+
+        ' Guard 2: empty target -> nothing to clean, and safe to proceed.
+        If IsDirEmpty(outputDir) Then Exit Sub
+
+        ' Guard 3: shallow target -> refuse.
+        If PathDepth(outputDir) < 2 Then
+            Err.Raise IE_ERR_SHALLOW_TARGET, "DoImport", _
+                "Refusing to clean a shallow path: """ & outputDir & """. " & _
+                "Clean-first will not recursively delete a drive root or a " & _
+                "top-level folder. Choose a deeper target directory."
+        End If
+
+        ' Guard 4: non-empty target that is not project-shaped -> refuse.
+        ' Settings must be a FILE (a legitimate project's Settings is never a
+        ' folder), so IsFile -- not PathExists -- is the correct test: a
+        ' directory named "Settings" must NOT count as proof this is a project.
+        If Not IsFile(JoinPath(outputDir, "Settings")) Then
+            Err.Raise IE_ERR_NO_SETTINGS, "DoImport", _
+                "Refusing to clean """ & outputDir & """: it is not empty and has " & _
+                "no top-level 'Settings' file, so it does not appear to be an " & _
+                "unpacked project. Delete it yourself if you are sure, or choose " & _
+                "the correct target."
+        End If
+
+        DeleteTree outputDir
+    End Sub
 
     Private Sub ExtractEntry(ByVal e As Entry, ByVal parentDir As String, ByRef res As IE_RESULT)
         If e.Kind = ekFile Then
@@ -347,7 +386,7 @@ Propagate:
             If PathExists(outputPath) Then
                 Err.Raise IE_ERR_TARGET_EXISTS, "DoExport", _
                     "Output already exists: """ & outputPath & """. " & _
-                    "Refusing to overwrite it. Use the overwrite option " & _
+                    "Refusing to overwrite it. Use the overwrite option (CLI: --force) " & _
                     "to replace it."
             End If
         End If
@@ -362,9 +401,9 @@ Propagate:
         ' are the IDE's concern, not ours. The requireSettings opt-out exists
         ' for the synthetic self-tests, which pack trees that legitimately
         ' have no Settings; every real CLI caller uses the default (True).
-        If requireSettings And Not HasTopLevelEntry(root, "Settings") Then
+        If requireSettings And Not HasTopLevelFile(root, "Settings") Then
             Err.Raise IE_ERR_NO_SETTINGS, "DoExport", _
-                "Refusing to pack: no 'Settings' entry at the top level of """ & _
+                "Refusing to pack: no 'Settings' file at the top level of """ & _
                 inputDir & """. The packed file would open without its references, " & _
                 "project name, or version."
         End If
@@ -419,17 +458,32 @@ Propagate:
         Return result
     End Function
     
-    ' True if a top-level child has this exact name, file OR directory.
-    ' Several well-known names are files, not folders -- Settings most
-    ' notably -- and the category is applied by name regardless of form
-    ' (see CategoryFor), so presence must be tested regardless of form too.
-    ' Checking only for a directory would false-alarm on the file form,
-    ' reporting it missing when the pack in fact included it. Ordinal,
+    ' True if a top-level child has this exact name, file OR directory. Used
+    ' by the missing-category-folder note, where the well-known names may be
+    ' either form (Resources is a folder; a name's category applies
+    ' regardless of form), so presence must be tested regardless of form.
+    ' The Settings GUARD does not use this -- see HasTopLevelFile -- because a
+    ' legitimate project's Settings must be a file specifically. Ordinal,
     ' case-sensitive, matching the rest of the tool.
     Private Function HasTopLevelEntry(ByVal root As Entry, ByVal name As String) As Boolean
         Dim i As Long
         For i = 1 To root.Children.Count
             If OrdinalCompare(root.Children.Item(i).Name, name) = 0 Then Return True
+        Next
+        Return False
+    End Function
+
+    ' True if a top-level child has this exact name AND is a file (not a
+    ' directory). Used by the Settings guard: a legitimate project's Settings
+    ' is always a file, never a folder, so a directory named "Settings" must
+    ' NOT satisfy the guard. This mirrors the on-disk IsFile check that the
+    ' clean-first guard in DoImport uses, keeping the two consistent.
+    Private Function HasTopLevelFile(ByVal root As Entry, ByVal name As String) As Boolean
+        Dim i As Long
+        For i = 1 To root.Children.Count
+            If root.Children.Item(i).Kind = ekFile Then
+                If OrdinalCompare(root.Children.Item(i).Name, name) = 0 Then Return True
+            End If
         Next
         Return False
     End Function

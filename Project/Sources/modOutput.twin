@@ -65,7 +65,7 @@ Private Module modOutput
     ' that produced it; the open-time check in LogOpen is where log problems
     ' surface.
     Public Sub Say(ByVal s As String)
-        Debug.Print s
+        If App.IsInIDE Then Debug.Print s
         If mLogOpen Then
             Dim b() As Byte, n As Long
             Utf8Encode s & vbCrLf, b, n

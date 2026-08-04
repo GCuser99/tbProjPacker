@@ -689,6 +689,170 @@ Caught:
         AssertEqL PathDepth("\\server\share\a\b"), 2, "UNC two-level depth"
     End Sub
 
+    ' ---- clean-first project-shape guard (protects the recursive delete) ----
+
+    ' Makes a non-empty folder that is NOT a project: it has content but no
+    ' top-level Settings file. Returns its path. settingsForm:
+    '   0 = no Settings at all
+    '   1 = Settings as a FILE (a real project)
+    '   2 = Settings as a FOLDER (not valid -- must not count as a project)
+    Private Function MakeShapedFolder(ByVal name As String, ByVal settingsForm As Long) As String
+        Dim d As String
+        d = JoinPath(mTmpDir, name)
+        EnsureDirectory d
+
+        ' Always give it some content so it is non-empty.
+        Dim body() As Byte, n As Long
+        Utf8Encode "x", body, n
+        WriteWholeFile JoinPath(d, "Module1.twin"), body, n
+
+        Select Case settingsForm
+            Case 1
+                Dim sbody() As Byte, sn As Long
+                Utf8Encode "[Settings]", sbody, sn
+                WriteWholeFile JoinPath(d, "Settings"), sbody, sn
+            Case 2
+                EnsureDirectory JoinPath(d, "Settings")   ' Settings as a FOLDER
+        End Select
+        Return d
+    End Function
+
+    ' cleanFirst must REFUSE a non-empty target that has no top-level Settings
+    ' file -- the protection against wiping a folder the user pointed at by
+    ' mistake. Assert it raises IE_ERR_NO_SETTINGS and does NOT delete.
+    Private Sub T_CleanRefusesNonProject()
+        Dim target As String
+        target = MakeShapedFolder("clean-nonproj", 0)      ' no Settings
+        Dim marker As String
+        marker = JoinPath(target, "Module1.twin")
+
+        Dim src As String, packFile As String
+        src = MakeProjectTree("cnp-src", True)
+        packFile = JoinPath(mTmpDir, "cnp.twinproj")
+        DoExport src, packFile, True
+
+        On Error GoTo Caught
+        DoImport packFile, target, True, cleanFirst:=True
+        On Error GoTo 0
+        Fail "cleanFirst should have refused a non-project folder"
+        Exit Sub
+Caught:
+        If Err.Number <> IE_ERR_NO_SETTINGS Then
+            Fail "wrong error: 0x" & Hex$(Err.Number) & " " & Err.Description
+        End If
+        ' The folder must be untouched -- nothing deleted.
+        AssertTrue PathExists(marker), "guard fired but the folder was modified"
+    End Sub
+
+    ' cleanFirst must REFUSE when Settings exists but is a FOLDER, not a file
+    ' -- a legitimate project's Settings is always a file. Same protection as
+    ' above, exercising the file-vs-folder distinction specifically.
+    Private Sub T_CleanRefusesSettingsFolder()
+        Dim target As String
+        target = MakeShapedFolder("clean-sfolder", 2)      ' Settings is a folder
+
+        Dim src As String, packFile As String
+        src = MakeProjectTree("csf-src", True)
+        packFile = JoinPath(mTmpDir, "csf.twinproj")
+        DoExport src, packFile, True
+
+        On Error GoTo Caught
+        DoImport packFile, target, True, cleanFirst:=True
+        On Error GoTo 0
+        Fail "cleanFirst should have refused (Settings is a folder, not a file)"
+        Exit Sub
+Caught:
+        If Err.Number <> IE_ERR_NO_SETTINGS Then
+            Fail "wrong error: 0x" & Hex$(Err.Number) & " " & Err.Description
+        End If
+    End Sub
+
+    ' cleanFirst must ALLOW a non-empty target that IS a project (has a
+    ' Settings file): the clean proceeds and the unpack succeeds. This is the
+    ' complement to the refusal tests -- proving the guard does not block the
+    ' legitimate case.
+    Private Sub T_CleanAllowsProject()
+        Dim target As String
+        target = MakeShapedFolder("clean-proj", 1)         ' Settings is a file
+        ' Plant a marker the unpacked archive will NOT recreate, so its
+        ' absence after the clean-unpack proves the clean actually ran.
+        Dim marker() As Byte, mn As Long
+        Utf8Encode "marker", marker, mn
+        Dim markerPath As String
+        markerPath = JoinPath(target, "CLEAN_MARKER.txt")
+        WriteWholeFile markerPath, marker, mn
+
+        Dim src As String, packFile As String
+        src = MakeProjectTree("cap-src", True)
+        packFile = JoinPath(mTmpDir, "cap.twinproj")
+        DoExport src, packFile, True
+
+        ' Must not raise. After a clean-unpack, the planted marker (absent
+        ' from the pack) must be gone, proving the clean ran.
+        DoImport packFile, target, True, cleanFirst:=True
+        AssertTrue Not PathExists(markerPath), "clean did not run on a valid project folder"
+    End Sub
+
+    ' cleanFirst must ALLOW an empty target: nothing to clean, and no project
+    ' check applies (the common "make an empty folder, clean-unpack into it"
+    ' workflow must not be blocked).
+    Private Sub T_CleanAllowsEmptyFolder()
+        Dim target As String
+        target = JoinPath(mTmpDir, "clean-empty")
+        EnsureDirectory target                              ' exists but empty
+
+        Dim src As String, packFile As String
+        src = MakeProjectTree("cae-src", True)
+        packFile = JoinPath(mTmpDir, "cae.twinproj")
+        DoExport src, packFile, True
+
+        ' Must not raise despite the folder having no Settings -- it is empty.
+        DoImport packFile, target, True, cleanFirst:=True
+        AssertTrue PathExists(target), "unpack into cleaned empty folder produced nothing"
+    End Sub
+
+    ' The export Settings guard must also require a FILE: a tree whose
+    ' top-level Settings is a folder must be refused, consistent with the
+    ' clean-first guard.
+    Private Sub T_ExportRefusesSettingsFolder()
+        Dim d As String
+        d = MakeShapedFolder("exp-sfolder", 2)             ' Settings is a folder
+        Dim outFile As String
+        outFile = JoinPath(mTmpDir, "exp-sfolder.twinproj")
+
+        On Error GoTo Caught
+        DoExport d, outFile, True                          ' requireSettings defaults True
+        On Error GoTo 0
+        Fail "export should have refused (Settings is a folder, not a file)"
+        Exit Sub
+Caught:
+        If Err.Number <> IE_ERR_NO_SETTINGS Then
+            Fail "wrong error: 0x" & Hex$(Err.Number) & " " & Err.Description
+        End If
+        If PathExists(outFile) Then
+            Fail "export refused but wrote a file anyway: " & outFile
+        End If
+    End Sub
+
+    ' DoImport must reject a missing input file with a clear error, mirroring
+    ' DoExport's input-directory guard.
+    Private Sub T_ImportMissingInput()
+        Dim missing As String
+        missing = JoinPath(mTmpDir, "does-not-exist.twinproj")
+        Dim target As String
+        target = JoinPath(mTmpDir, "imi-target")
+
+        On Error GoTo Caught
+        DoImport missing, target, True
+        On Error GoTo 0
+        Fail "DoImport should have rejected a missing input file"
+        Exit Sub
+Caught:
+        If InStr(Err.Description, "not found") = 0 Then
+            Fail "wrong error: 0x" & Hex$(Err.Number) & " " & Err.Description
+        End If
+    End Sub
+
     ' ------------------------------------------------------------- runner
 
     Private Sub RunTest(ByVal id As Long, ByVal name As String, ByVal needsSample As Boolean)
@@ -717,6 +881,12 @@ Caught:
             Case 15: T_OverwritePassesWithFlag
             Case 16: T_CleanFirstRemovesStale
             Case 17: T_PathDepthGuard
+            Case 18: T_CleanRefusesNonProject
+            Case 19: T_CleanRefusesSettingsFolder
+            Case 20: T_CleanAllowsProject
+            Case 21: T_CleanAllowsEmptyFolder
+            Case 22: T_ExportRefusesSettingsFolder
+            Case 23: T_ImportMissingInput
         End Select
         Say "  [PASS] " & name
         mPassed = mPassed + 1
@@ -773,6 +943,12 @@ Failed:
         RunTest 15, "Export overwrite proceeds with overwrite flag", False
         RunTest 16, "Clean-first removes stale files", False
         RunTest 17, "Clean-first depth guard (PathDepth logic)", False
+        RunTest 18, "Clean-first refuses a non-project folder", False
+        RunTest 19, "Clean-first refuses Settings-as-folder", False
+        RunTest 20, "Clean-first allows a valid project folder", False
+        RunTest 21, "Clean-first allows an empty folder", False
+        RunTest 22, "Export refuses Settings-as-folder", False
+        RunTest 23, "Import rejects a missing input file", False
 
         On Error Resume Next
         DeleteTree mTmpDir

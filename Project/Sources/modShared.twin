@@ -99,6 +99,26 @@ Private Module modShared
         If a = INVALID_FILE_ATTRIBUTES Then Return False
         Return (a And FILE_ATTRIBUTE_DIRECTORY) <> 0
     End Function
+
+    ' Exists and is NOT a directory. Note this returns True for any non-dir
+    ' filesystem object at the path (file, and in principle a reparse point),
+    ' which is what the callers want: "is there a plain entry here".
+    Public Function IsFile(ByVal p As String) As Boolean
+        Dim a As Long
+        a = GetFileAttributesW(StrPtr(ApiPath(p)))
+        If a = INVALID_FILE_ATTRIBUTES Then Return False
+        Return (a And FILE_ATTRIBUTE_DIRECTORY) = 0
+    End Function
+
+    ' True if the directory contains no entries (ignoring "." and ".."). A
+    ' path that does not exist or is not a directory returns True as well --
+    ' callers gate on IsDirectory first, so "not a real non-empty directory"
+    ' collapsing to True is the safe reading for the clean-first guard.
+    Public Function IsDirEmpty(ByVal dirPath As String) As Boolean
+        Dim names() As String, isDir() As Boolean, count As Long
+        ListDirectory dirPath, names, isDir, count
+        Return (count = 0)
+    End Function
     
     ' os.makedirs(path, exist_ok=True)
     Public Sub EnsureDirectory(ByVal p As String)
@@ -340,3 +360,4 @@ Private Module modShared
     End Sub
 
 End Module
+

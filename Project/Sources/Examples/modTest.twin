@@ -12,7 +12,7 @@ Private Module modTest
         
         ' Run Unpack with cleanFirst and logging
         Debug.Assert pp.Unpack(inputFile:=inProjFilePath, outputDir:=outProjFolderPath, logfile:=".\log.txt", cleanFirst:=True)
-        
+
         ' Run Test with logging
         Debug.Assert pp.Test(samplePath:=inProjFilePath, logFile:=".\log.txt")
         
@@ -27,7 +27,7 @@ Private Module modTest
         Loop
         Close #fileNum
         
-        Debug.Assert lineText = "17/17 tests passed."
+        Debug.Assert lineText = "23/23 tests passed."
     End Sub
     
     Private Sub PackTwinProj()
