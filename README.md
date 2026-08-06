@@ -7,6 +7,12 @@ This is the package counterpart to the [ImpExp console
 app](https://github.com/GCuser99/tbImportExport), which itself was ported from the Python version of [Import-Export-Tool](https://docs.twinbasic.com/Features/Packages/Import-Export-Tool). Same core logic; a
 different, in-code surface.
 
+## Why use this
+
+The most common use is keeping an ASCII representation of your twinBASIC projects under version control. A .twinproj is a binary file — opaque to Git, undiffable, and unmergeable — so committing it directly gives you none of what version control is for. Unpacking it into a directory tree of plain text files means Git can show you real diffs and it means your project's history is readable by anything that reads text.
+
+Because Pack, Unpack, and Test are ordinary function calls returning a simple Boolean, they slot directly into code-management automation written in twinBASIC itself. One workflow this enables: keep a master development copy of a project, then unpack it, modify or strip the copy, and repack it for publication — all without touching the dev copy. For example, if your development project contains source helpers, scratch code, or scaffolding you don't want to ship, a routine can unpack a fresh copy, remove those pieces, and pack the result into a clean .twinproj for release. The master stays intact; the published artifact is derived from it on demand rather than hand-edited into existence.
+
 ## Public surface
 
 Three functions, all on the `ProjPacker` class, all returning `Boolean`
