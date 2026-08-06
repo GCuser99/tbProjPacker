@@ -7,7 +7,7 @@ This is the package counterpart to the [ImpExp console
 app](https://github.com/GCuser99/tbImportExport), which itself was ported from the Python version of [Import-Export-Tool](https://docs.twinbasic.com/Features/Packages/Import-Export-Tool). Same core logic; a
 different, in-code surface.
 
-## Why use this
+## What's this for?
 
 The most common use is keeping an ASCII representation of your twinBASIC projects under version control. A `.twinproj` file is binary — opaque to Git, undiffable, and unmergeable — so committing it directly gives you none of what version control is for. Unpacking it into a directory tree of plain text files means Git can show you real diffs and it means your project's history is readable by anything that reads text.
 
