@@ -9,6 +9,7 @@
 	"project.licence": "MIT",
 	"project.name": "tbProjPacker",
 	"project.optionExplicit": true,
+	"project.packageVisibility": "PUBLIC",
 	"project.references": [
 		{
 			"id": "{00020430-0000-0000-C000-000000000046}",
