@@ -132,7 +132,7 @@ For most folders this is a Git limitation, not a tool limitation, and it is harm
 
 ### The one exception: Settings
 
-`Settings` file is different, and `pack` treats it differently. It holds the project name, references, version, and compile options. If it is missing, the IDE cannot reconstruct that content: the project opens with its source intact but its references, name, and version blanked.
+`Settings` file is different, and `pack` treats it differently. It holds the project name, references, version, and compile options in json format. If it is missing, the IDE cannot reconstruct that content: the project opens with its source intact but its references, name, and version blanked.
 
 So **`pack` refuses to pack a directory tree that has no top-level `Settings` file entry**, rather than produce a misleadingly useless file. It stops before writing anything and reports:
 
@@ -140,8 +140,6 @@ So **`pack` refuses to pack a directory tree that has no top-level `Settings` fi
 error: Refusing to pack: no 'Settings' entry at the top level of "<dir>". The packed
 file would open without its references, project name, or version.
 ```
-
-In practice `Settings` is usually a file (a name with no extension), not a folder, so Git normally carries it fine. This refusal is mainly a guard against a tree where `Settings` genuinely went missing. If you see it after a fresh checkout, restore the `Settings` entry before packing.
 
 ## License
 
