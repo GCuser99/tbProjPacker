@@ -15,6 +15,8 @@ tbProjPacker's functions slot directly into code-management automation written i
 
 <img src="Images/workflow.svg" alt="Automated Project Generation: Unpack, Modify, Pack" width="700">
 
+---
+
 ## Public surface
 
 Three functions, all on the `ProjPacker` class, all returning `Boolean`
@@ -49,6 +51,8 @@ ok = pp.Test(samplePath, [logFile])
 | `Test` | `samplePath` | Required. A real `.twinproj` / `.twinpack` to test against. |
 | | `logFile` | Optional. Path to a log file for this call's output. |
 
+---
+
 ## Error model
 
 These functions **never raise**. Any failure is caught internally and
@@ -64,6 +68,8 @@ If Not pp.Pack("C:\proj\MyApp", "C:\out\MyApp.twinproj") Then
 End If
 ```
 
+---
+
 ## Output
 
 Every operation always calls `Debug.Print` for its progress and summary
@@ -75,6 +81,8 @@ Supplying `logFile` additionally writes those same lines to a file, as UTF-8
 with Windows (CRLF) line endings, **overwriting** any existing file. Because project output routinely contains
 non-ASCII file names, the log is written as UTF-8 rather than the native
 codepage.
+
+---
 
 ## Guards (why a call may return False)
 
@@ -102,6 +110,8 @@ artifact, and the `.twinproj` it came from is untouched — so `Unpack`
 overwrites an existing tree freely, and `cleanFirst` is offered only as a
 convenience for a tidy result.
 
+---
+
 ## Files
 
 | File | Scope | Contents |
@@ -119,10 +129,14 @@ convenience for a tidy result.
 Only `ProjPacker.twin` is public. Everything else is private to the package, so it
 won't collide with members of the referencing project.
 
+---
+
 ## How to reference the twinBASIC Package
 The package can be referenced through twinBASIC's Package Server. In the IDE, click References -> Available Packages. Scroll to find "Project (Un)Packer for .twinproj and .twinpack Files" entry and click the checkbox on the left of the entry. Then click "Apply Changes" button in lower-right.
 
 <img src="https://github.com/GCuser99/tbProjPacker/blob/main/Images/PackageRef.png" alt="Package" width=90%>
+
+---
 
 ## Round-tripping through GitHub
 
@@ -142,6 +156,15 @@ So **`pack` refuses to pack a directory tree that has no top-level `Settings` fi
 error: Refusing to pack: no 'Settings' entry at the top level of "<dir>". The packed
 file would open without its references, project name, or version.
 ```
+
+---
+
+## Acknowledgements
+
+* **fafalone** — for [WinDevLib](https://github.com/fafalone/WinDevLib), source of standardized Win32 API declares.
+* **Wayne Phillips** — for [twinBASIC](https://twinbasic.com).
+
+---
 
 ## License
 
