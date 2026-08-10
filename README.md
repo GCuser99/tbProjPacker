@@ -13,7 +13,7 @@ The most common use is keeping an ASCII representation of your twinBASIC project
 
 tbProjPacker's functions slot directly into code-management automation written in twinBASIC itself. One workflow this enables: keep a master development copy of a project, then unpack it, modify or strip the copy, and repack it for publication — all without touching the dev copy. For example, if your development project contains source helpers, scratch code, or scaffolding you don't want to ship, a routine can unpack a fresh copy, remove those pieces, and pack the result into a clean `.twinproj` for release. The master stays intact; the published artifact is derived from it on demand rather than hand-edited into existence.
 
-<img src="workflow.svg" alt="Automated Project Generation: Unpack, Modify, Pack" width="600">
+<img src="Images/workflow.svg" alt="Automated Project Generation: Unpack, Modify, Pack" width="600">
 
 ## Public surface
 
