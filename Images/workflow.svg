@@ -5,7 +5,7 @@
   <!-- Box 1: Unpack -->
   <rect x="30" y="60" width="180" height="70" rx="8" fill="#e8f0fe" stroke="#4285f4" stroke-width="2"/>
   <text x="120" y="90" text-anchor="middle" font-size="16" font-weight="600" fill="#1a1a2e">Unpack</text>
-  <text x="120" y="112" text-anchor="middle" font-size="11" fill="#5f6368">.twinproj &#8594; source tree</text>
+  <text x="120" y="113" text-anchor="middle" font-size="13" fill="#5f6368">.twinproj &#8594; source tree</text>
 
   <!-- Arrow 1 -->
   <line x1="216" y1="95" x2="264" y2="95" stroke="#9aa0a6" stroke-width="2"/>
@@ -14,7 +14,7 @@
   <!-- Box 2: Modify -->
   <rect x="270" y="60" width="180" height="70" rx="8" fill="#fef7e0" stroke="#f9ab00" stroke-width="2"/>
   <text x="360" y="90" text-anchor="middle" font-size="16" font-weight="600" fill="#1a1a2e">Modify</text>
-  <text x="360" y="112" text-anchor="middle" font-size="11" fill="#5f6368">settings / source</text>
+  <text x="360" y="113" text-anchor="middle" font-size="13" fill="#5f6368">settings / source</text>
 
   <!-- Arrow 2 -->
   <line x1="456" y1="95" x2="504" y2="95" stroke="#9aa0a6" stroke-width="2"/>
@@ -23,8 +23,8 @@
   <!-- Box 3: Pack -->
   <rect x="510" y="60" width="180" height="70" rx="8" fill="#e6f4ea" stroke="#34a853" stroke-width="2"/>
   <text x="600" y="90" text-anchor="middle" font-size="16" font-weight="600" fill="#1a1a2e">Pack</text>
-  <text x="600" y="112" text-anchor="middle" font-size="11" fill="#5f6368">source tree &#8594; .twinproj</text>
+  <text x="600" y="113" text-anchor="middle" font-size="13" fill="#5f6368">source tree &#8594; .twinproj</text>
 
   <!-- Flow direction label -->
-  <text x="360" y="152" text-anchor="middle" font-size="10" fill="#9aa0a6" letter-spacing="1">DEVELOPMENT COPY UNTOUCHED &#183; RELEASE ARTIFACT DERIVED ON DEMAND</text>
+  <text x="360" y="153" text-anchor="middle" font-size="12" fill="#9aa0a6" letter-spacing="1">DEVELOPMENT COPY UNTOUCHED &#183; RELEASE ARTIFACT DERIVED ON DEMAND</text>
 </svg>
