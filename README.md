@@ -26,14 +26,18 @@ Three functions, all on the `ProjPacker` class, all returning `Boolean`
 Dim pp As New ProjPacker
 Dim ok As Boolean
 
-' Pack a directory tree into a .twinproj / .twinpack file.
-ok = pp.Pack(inputDir, outputFile, [overwrite], [logFile])
-
 ' Unpack a .twinproj / .twinpack file into a directory tree.
 ok = pp.Unpack(inputFile, outputDir, [cleanFirst], [logFile])
 
+' Optionally modify project text files, including Settings json
+' ...
+
+' Pack a directory tree into a .twinproj / .twinpack file.
+inputDir = outputDir
+ok = pp.Pack(inputDir, outputFile, [overwrite], [logFile])
+
 ' Run the self-test suite against a sample .twinproj / .twinpack.
-ok = pp.Test(samplePath, [logFile])
+ok = pp.Test(outputFile, [logFile])
 ```
 
 ### Arguments
