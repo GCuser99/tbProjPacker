@@ -41,7 +41,6 @@ End If
 ' Pack a directory tree into a .twinproj / .twinpack file.
 inputDir = outputDir
 ok = pp.Pack(inputDir, outputFile, [overwrite], [logFile])
-
 If Not ok Then
     ' Handle failure
 End If
