@@ -25,9 +25,15 @@ Three functions, all on the `ProjPacker` class, all returning `Boolean`
 ```vba
 Dim pp As New ProjPacker
 Dim ok As Boolean
+Dim inputFile As String = "path\to\my project.twinproj"
+Dim outputFile As String = "path\to\my modified project.twinproj"
+Dim outputDir As String =  "path\to\Project"
 
 ' Unpack a .twinproj / .twinpack file into a directory tree.
 ok = pp.Unpack(inputFile, outputDir, [cleanFirst], [logFile])
+If Not ok Then
+    ' Handle failure
+End If
 
 ' Optionally modify project text files, including Settings json
 ' ...
@@ -36,8 +42,10 @@ ok = pp.Unpack(inputFile, outputDir, [cleanFirst], [logFile])
 inputDir = outputDir
 ok = pp.Pack(inputDir, outputFile, [overwrite], [logFile])
 
-' Run the self-test suite against a sample .twinproj / .twinpack.
-ok = pp.Test(outputFile, [logFile])
+If Not ok Then
+    ' Handle failure
+End If
+
 ```
 
 ### Arguments
