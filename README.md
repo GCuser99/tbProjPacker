@@ -27,10 +27,10 @@ Dim pp As New ProjPacker
 Dim ok As Boolean
 Dim inputFile As String = "path\to\my project.twinproj"
 Dim outputFile As String = "path\to\my modified project.twinproj"
-Dim outputDir As String =  "path\to\Project"
+Dim projectDir As String =  "path\to\Project"
 
 ' Unpack a .twinproj / .twinpack file into a directory tree.
-ok = pp.Unpack(inputFile, outputDir, [cleanFirst], [logFile])
+ok = pp.Unpack(inputFile, projectDir, [cleanFirst], [logFile])
 If Not ok Then
     ' Handle failure
 End If
@@ -39,8 +39,7 @@ End If
 ' ...
 
 ' Pack a directory tree into a .twinproj / .twinpack file.
-inputDir = outputDir
-ok = pp.Pack(inputDir, outputFile, [overwrite], [logFile])
+ok = pp.Pack(projectDir, outputFile, [overwrite], [logFile])
 If Not ok Then
     ' Handle failure
 End If
