@@ -173,7 +173,7 @@ file would open without its references, project name, or version.
 ## Acknowledgements
 
 * **fafalone** — for [WinDevLib](https://github.com/fafalone/WinDevLib), source of standardized Win32 API declares.
-* **Wayne Phillips** — for [twinBASIC](https://twinbasic.com).
+* **Wayne Phillips** — for [twinBASIC](https://twinbasic.com) and [Import Export Tool](https://docs.twinbasic.com/Features/Packages/Import-Export-Tool)
 
 ---
 
