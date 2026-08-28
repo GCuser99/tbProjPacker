@@ -1,7 +1,7 @@
 ' https://github.com/GCuser99/tbProjPacker/tree/main
 ' License: MIT
 '
-' modPackUnpack -- twinpack/twinproj parser, serializer, importer, exporter.
+' modImpExp -- twinpack/twinproj parser, serializer, importer, exporter.
 '
 ' Wire format (all integers little-endian):
 '
@@ -18,9 +18,16 @@
 '     else:
 '       u32  childCount + childCount * entry
 
-Private Module modPackUnpack
+Private Module modImpExp
 
     Option Explicit
+
+    ' Counts code files whose line endings were converted to CRLF during the
+    ' current export. Reset at the start of each DoPack, read when building
+    ' the summary. Module-level because BuildTree recurses and incrementing a
+    ' passed-by-ref counter through the recursion is more error-prone than a
+    ' single well-scoped module variable that DoPack owns.
+    Private mNormalizedCount As Long
 
     ' ------------------------------------------------------------- constants
 
@@ -391,6 +398,7 @@ Propagate:
             End If
         End If
         Dim root As Entry
+        mNormalizedCount = 0            ' reset before BuildTree, which increments it
         Set root = BuildTree(inputDir)
         ' Guard: Settings is not regenerable scaffolding. It holds the
         ' project name, references, version, and compile options -- content
@@ -432,6 +440,17 @@ Propagate:
                 ' with the packed file.
                 Say "  note: expected folders not present on disk: " & missing & "."
                 Say "  twinBASIC should rebuild them on Open Project."
+            End If
+            If mNormalizedCount > 0 Then
+                ' A code file under Sources arrived with Unix (LF) line
+                ' endings and was converted to Windows (CRLF), which
+                ' twinBASIC requires for files it interprets as code. This
+                ' usually means a Git round trip returned them as LF -- worth
+                ' checking the repository's line-ending settings (e.g.
+                ' .gitattributes / core.autocrlf) so it does not recur.
+                Say "  note: converted " & CStr(mNormalizedCount) & _
+                    " code file(s) under Sources from Unix (LF) to Windows (CRLF) " & _
+                    "line endings."
             End If
         End If
         Return res
@@ -500,7 +519,8 @@ Propagate:
         End If
     End Sub
 
-    Private Function BuildTree(ByVal dirPath As String) As Entry
+    Private Function BuildTree(ByVal dirPath As String, _
+                               Optional ByVal withinSources As Boolean = False) As Entry
         Dim e As Entry
         Set e = New Entry
         e.Kind = ekDirectory
@@ -539,8 +559,13 @@ Propagate:
         SortStrings files, nf
 
         ' Directories first, then files -- matching the reference layout.
+        ' withinSources becomes True when descending into a top-level folder
+        ' named "Sources", and stays True for every descendant -- code can
+        ' live in subfolders of Sources and still needs CRLF.
+        Dim childWithin As Boolean
         For i = 0 To nd - 1
-            e.Children.Add BuildTree(JoinPath(dirPath, dirs(i)))
+            childWithin = withinSources Or (OrdinalCompare(dirs(i), "Sources") = 0)
+            e.Children.Add BuildTree(JoinPath(dirPath, dirs(i)), childWithin)
         Next
 
         Dim fe As Entry
@@ -554,7 +579,23 @@ Propagate:
             fe.Flags = PP_FLAGS_NONE
             fe.Category = CategoryFor(files(i))
             ReadWholeFile JoinPath(dirPath, files(i)), b, n
-            fe.SetContent b, n
+
+            ' Normalize line endings to CRLF for code files under Sources
+            ' only. twinBASIC requires CRLF for files it interprets as code;
+            ' a careless Git round trip can return them as LF. Other files
+            ' (resources, data) legitimately use LF and are left untouched.
+            If withinSources And IsCodeFileName(files(i)) Then
+                Dim nb() As Byte, nn As Long
+                If NormalizeNewlines(b, n, nb, nn) Then
+                    mNormalizedCount = mNormalizedCount + 1
+                    fe.SetContent nb, nn
+                Else
+                    fe.SetContent b, n
+                End If
+            Else
+                fe.SetContent b, n
+            End If
+
             fe.AllocRevisions 0
             e.Children.Add fe
         Next

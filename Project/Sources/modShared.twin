@@ -119,6 +119,87 @@ Private Module modShared
         ListDirectory dirPath, names, isDir, count
         Return (count = 0)
     End Function
+
+    ' ======================================================== line endings ===
+
+    ' The code file extensions twinBASIC interprets under the Sources tree.
+    ' These -- and only these, and only under Sources -- must have Windows
+    ' (CRLF) line endings for the interpreter to work correctly. A Git round
+    ' trip on a careless setup can return them as Unix (LF), so pack
+    ' normalizes them. Other file types (resources, data, non-source text)
+    ' legitimately use LF and must NOT be touched.
+    '
+    ' Single source of truth: add an extension here if twinBASIC gains a new
+    ' code file type. Lower-case, no leading dot.
+    Public Function CodeExtensions() As String
+        Return "twin|bas|cls"
+    End Function
+
+    ' True if the file name has one of the code extensions. Case-insensitive
+    ' on the extension, since Windows file systems are case-insensitive and a
+    ' ".TWIN" is the same code file as a ".twin".
+    Public Function IsCodeFileName(ByVal fileName As String) As Boolean
+        Dim dot As Long
+        dot = InStrRev(fileName, ".")
+        If dot = 0 Then Return False
+        Dim ext As String
+        ext = LCase$(Mid$(fileName, dot + 1))
+
+        Dim exts() As String
+        exts = Split(CodeExtensions(), "|")
+        Dim i As Long
+        For i = LBound(exts) To UBound(exts)
+            If ext = exts(i) Then Return True
+        Next
+        Return False
+    End Function
+
+    ' Normalizes line endings to Windows CRLF: strip every CR, then expand
+    ' every LF to CRLF. This order is idempotent -- running it on already-CRLF
+    ' text yields identical bytes -- which naively replacing LF with CRLF is
+    ' not (it would double existing CRLF into CR-CR-LF).
+    '
+    ' Writes the result into outBuf and its length into outLen. Returns True
+    ' if the normalized bytes differ from the input (i.e. the file was not
+    ' already pure CRLF), so the caller can count and report converted files.
+    ' Operates on bytes, so it is encoding-agnostic (correct for UTF-8: CR is
+    ' 0x0D and LF is 0x0A, and neither appears as a continuation byte in a
+    ' multi-byte sequence).
+    Public Function NormalizeNewlines(ByRef inBuf() As Byte, ByVal inLen As Long, _
+                                      ByRef outBuf() As Byte, ByRef outLen As Long) As Boolean
+        outLen = 0
+        If inLen <= 0 Then
+            Erase outBuf
+            Return False
+        End If
+
+        ' Worst case (all LF, no CR) doubles the size.
+        ReDim outBuf(0 To inLen * 2 - 1)
+
+        Dim i As Long, o As Long
+        o = 0
+        For i = 0 To inLen - 1
+            Select Case inBuf(i)
+                Case 13                       ' CR -- drop (a following LF re-adds it)
+                    ' skip
+                Case 10                       ' LF -> CRLF
+                    outBuf(o) = 13: o = o + 1
+                    outBuf(o) = 10: o = o + 1
+                Case Else
+                    outBuf(o) = inBuf(i): o = o + 1
+            End Select
+        Next
+        outLen = o
+
+        ' Changed iff output differs from input -- by length, or failing that,
+        ' by content. This is the honest signal for "was not already CRLF".
+        If outLen <> inLen Then Return True
+        Dim j As Long
+        For j = 0 To inLen - 1
+            If outBuf(j) <> inBuf(j) Then Return True
+        Next
+        Return False
+    End Function
     
     ' os.makedirs(path, exist_ok=True)
     Public Sub EnsureDirectory(ByVal p As String)
@@ -159,7 +240,6 @@ Private Module modShared
                              ByRef outIsDir() As Boolean, _
                              ByRef outCount As Long)
         
-        'Dim fd As PP_FIND_DATA
         Dim fd As WIN32_FIND_DATAW
         Dim h As LongPtr
         Dim pattern As String
@@ -235,7 +315,7 @@ Private Module modShared
     ' recursively delete something dangerously shallow. "C:\" -> 0,
     ' "C:\Downloads" -> 1, "C:\Users\me\proj" -> 3. UNC roots
     ' (\\server\share) count the share as depth 0 as well. Used to guard the
-    ' clean-first delete in DoUnpack against a fat-fingered target like a
+    ' clean-first delete in DoImport against a fat-fingered target like a
     ' drive root.
     Public Function PathDepth(ByVal p As String) As Long
         Dim full As String
@@ -283,7 +363,7 @@ Private Module modShared
     End Function
 
     ' Recursive delete, used by the self-test cleanup and the clean-first
-    ' option in DoUnpack.
+    ' option in DoImport.
     Public Sub DeleteTree(ByVal dirPath As String)
         If Not IsDirectory(dirPath) Then Exit Sub
         Dim names() As String, isDir() As Boolean, n As Long, i As Long
@@ -360,4 +440,3 @@ Private Module modShared
     End Sub
 
 End Module
-

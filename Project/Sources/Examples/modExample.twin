@@ -1,0 +1,26 @@
+Private Module modExample
+    
+    Private Sub Example()
+        Dim pp As New ProjPacker
+        Dim ok As Boolean
+        Dim inputFile As String = "path\to\my project.twinproj"
+        Dim outputFile As String = "path\to\my modified project.twinproj"
+        Dim projectDir As String = "path\to\Project"
+
+        ' Unpack a .twinproj / .twinpack file into a directory tree.
+        ok = pp.Unpack(inputFile, projectDir)
+        If Not ok Then
+            ' Handle failure
+        End If
+
+        ' Optionally modify project text files, including Settings json
+        ' ...
+
+        ' Pack a directory tree into a .twinproj / .twinpack file.
+        ok = pp.Pack(projectDir, outputFile)
+        If Not ok Then
+            ' Handle failure
+        End If
+    End Sub
+    
+End Module

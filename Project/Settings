@@ -1,52 +1,53 @@
 {
-	"configuration.inherits": "Defaults",
-	"project.appTitle": "tbProjPacker",
-	"project.buildPath": "${SourcePath}\\Build\\${ProjectName}_${Architecture}.${FileExtension}",
-	"project.buildType": "Package TWINPACK",
-	"project.description": "Project (Un)Packer for .twinproj and .twinpack Files",
-	"project.id": "{E89C8DEE-35ED-42A0-8274-449B6E5E5E3B}",
-	"project.largeAddressAware": true,
-	"project.licence": "MIT",
-	"project.name": "tbProjPacker",
-	"project.optionExplicit": true,
-	"project.packageVisibility": "PUBLIC",
-	"project.references": [
-		{
-			"id": "{00020430-0000-0000-C000-000000000046}",
-			"lcid": 0,
-			"name": "OLE Automation",
-			"path32": "C:\\Windows\\SysWOW64\\stdole2.tlb",
-			"path64": "C:\\Windows\\System32\\stdole2.tlb",
-			"symbolId": "stdole",
-			"versionMajor": 2,
-			"versionMinor": 0
-		},
-		{
-			"autoCtlExt": true,
-			"id": "{C192FB39-64CA-4D9B-B477-A5502F48EFCC}",
-			"isCompilerPackage": true,
-			"licence": "MIT",
-			"name": "[COMPILER PACKAGE] twinBASIC - App global class object",
-			"path32": "",
-			"path64": "",
-			"publisher": "TWINBASIC-COMPILER",
-			"symbolId": "AppGlobalClassProject",
-			"versionBuild": 0,
-			"versionMajor": 1,
-			"versionMinor": 0,
-			"versionRevision": 0
-		}
-	],
-	"project.settingsVersion": 1,
-	"project.versionMajor": 1,
-	"project.versionMinor": 0,
-	"project.versionRevision": 5,
-	"project.warnings": {
-		"errors": [],
-		"hints": [],
-		"ignored": [],
-		"info": [],
-		"warnings": []
-	},
-	"runtime.useUnicodeStandardLibrary": true
+        "configuration.inherits": "Defaults",
+        "project.appTitle": "tbProjPacker",
+        "project.buildPath": "${SourcePath}\\Build\\${ProjectName}_${Architecture}.${FileExtension}",
+        "project.buildType": "Package TWINPACK",
+        "project.description": "Project (Un)Packer for .twinproj and .twinpack Files",
+        "project.id": "{E89C8DEE-35ED-42A0-8274-449B6E5E5E3B}",
+        "project.largeAddressAware": true,
+        "project.licence": "MIT",
+        "project.name": "tbProjPacker",
+        "project.optionExplicit": true,
+        "project.packageVisibility": "PRIVATE",
+        "project.references": [
+                {
+                        "id": "{00020430-0000-0000-C000-000000000046}",
+                        "lcid": 0,
+                        "name": "OLE Automation",
+                        "path32": "C:\\Windows\\SysWOW64\\stdole2.tlb",
+                        "path64": "C:\\Windows\\System32\\stdole2.tlb",
+                        "symbolId": "stdole",
+                        "versionMajor": 2,
+                        "versionMinor": 0
+                },
+                {
+                        "autoCtlExt": true,
+                        "id": "{C192FB39-64CA-4D9B-B477-A5502F48EFCC}",
+                        "isCompilerPackage": true,
+                        "licence": "MIT",
+                        "name": "[COMPILER PACKAGE] twinBASIC - App global class object",
+                        "path32": "",
+                        "path64": "",
+                        "publisher": "TWINBASIC-COMPILER",
+                        "symbolId": "AppGlobalClassProject",
+                        "versionBuild": 0,
+                        "versionMajor": 1,
+                        "versionMinor": 0,
+                        "versionRevision": 0
+                }
+        ],
+        "project.settingsVersion": 1,
+        "project.versionMajor": 1,
+        "project.versionMinor": 1,
+        "project.versionRevision": 0,
+        "project.warnings": {
+                "errors": [],
+                "hints": [],
+                "ignored": [],
+                "info": [],
+                "warnings": []
+        },
+        "runtime.useUnicodeStandardLibrary": true,
+        "project.versionBuild": 0
 }

@@ -853,6 +853,110 @@ Caught:
         End If
     End Sub
 
+    ' Line-ending normalization must be scoped precisely (Reading B): a code
+    ' file UNDER Sources is converted LF -> CRLF; a NON-code file under
+    ' Sources is left as-is; and a code-extension file OUTSIDE Sources is left
+    ' as-is. This builds all three with LF content, packs, and inspects the
+    ' resulting tree's bytes directly.
+    Private Sub T_LineEndingNormalization()
+        Dim proj As String
+        proj = JoinPath(mTmpDir, "le-proj")
+        EnsureDirectory proj
+
+        ' A valid project needs a top-level Settings file to pass the guard.
+        WriteLfFile JoinPath(proj, "Settings"), "[Settings]" & vbLf & "Name=le"
+
+        ' Under Sources: a code file (should convert) and a non-code file
+        ' (should NOT convert).
+        Dim srcDir As String
+        srcDir = JoinPath(proj, "Sources")
+        EnsureDirectory srcDir
+        WriteLfFile JoinPath(srcDir, "Module1.twin"), "Line1" & vbLf & "Line2"
+        WriteLfFile JoinPath(srcDir, "notes.txt"), "note1" & vbLf & "note2"
+
+        ' Under a SUBFOLDER of Sources: a code file (should convert -- proves
+        ' the flag propagates to descendants).
+        Dim subDir As String
+        subDir = JoinPath(srcDir, "Sub")
+        EnsureDirectory subDir
+        WriteLfFile JoinPath(subDir, "Deep.cls"), "A" & vbLf & "B"
+
+        ' Outside Sources: a code-EXTENSION file (should NOT convert -- scope
+        ' is Sources, not extension alone).
+        Dim resDir As String
+        resDir = JoinPath(proj, "Resources")
+        EnsureDirectory resDir
+        WriteLfFile JoinPath(resDir, "Stray.bas"), "X" & vbLf & "Y"
+
+        ' Pack, then re-parse the output to inspect stored bytes.
+        Dim packFile As String
+        packFile = JoinPath(mTmpDir, "le.twinproj")
+        DoPack proj, packFile, True
+
+        Dim buf() As Byte, blen As Long
+        ReadWholeFile packFile, buf, blen
+        Dim root As Entry
+        Set root = ParseBuffer(buf, blen)
+
+        ' Code file under Sources -> CRLF.
+        AssertTrue EntryIsCRLF(root, "Sources/Module1.twin"), _
+                   "code file under Sources was not converted to CRLF"
+        ' Code file under a subfolder of Sources -> CRLF.
+        AssertTrue EntryIsCRLF(root, "Sources/Sub/Deep.cls"), _
+                   "code file under Sources subfolder was not converted"
+        ' Non-code file under Sources -> unchanged (still LF).
+        AssertTrue Not EntryIsCRLF(root, "Sources/notes.txt"), _
+                   "non-code file under Sources was wrongly converted"
+        ' Code-extension file OUTSIDE Sources -> unchanged (still LF).
+        AssertTrue Not EntryIsCRLF(root, "Resources/Stray.bas"), _
+                   "code-extension file outside Sources was wrongly converted"
+    End Sub
+
+    ' Writes s as raw bytes (its literal vbLf line endings preserved), NOT
+    ' through any CRLF-normalizing path -- so the test controls the exact
+    ' on-disk bytes it is testing against.
+    Private Sub WriteLfFile(ByVal path As String, ByVal s As String)
+        Dim b() As Byte, n As Long
+        Utf8Encode s, b, n
+        WriteWholeFile path, b, n
+    End Sub
+
+    ' Finds a file entry by "/"-joined relative path from root and returns
+    ' True if its content contains a CRLF (0x0D 0x0A) pair. Used to check
+    ' whether normalization ran on that file.
+    Private Function EntryIsCRLF(ByVal root As Entry, ByVal relPath As String) As Boolean
+        Dim e As Entry
+        Set e = FindEntry(root, relPath)
+        If e Is Nothing Then Fail "entry not found in packed tree: " & relPath
+        Dim i As Long
+        For i = 0 To e.ContentLen - 2
+            If e.ContentByte(i) = 13 And e.ContentByte(i + 1) = 10 Then Return True
+        Next
+        Return False
+    End Function
+
+    ' Walks the tree following a "/"-joined relative path. Root's own name is
+    ' not part of relPath -- matching starts at root's children.
+    Private Function FindEntry(ByVal root As Entry, ByVal relPath As String) As Entry
+        Dim parts() As String
+        parts = Split(relPath, "/")
+        Dim cur As Entry
+        Set cur = root
+        Dim p As Long, i As Long, nextE As Entry
+        For p = LBound(parts) To UBound(parts)
+            Set nextE = Nothing
+            For i = 1 To cur.Children.Count
+                If OrdinalCompare(cur.Children.Item(i).Name, parts(p)) = 0 Then
+                    Set nextE = cur.Children.Item(i)
+                    Exit For
+                End If
+            Next
+            If nextE Is Nothing Then Return Nothing
+            Set cur = nextE
+        Next
+        Return cur
+    End Function
+
     ' ------------------------------------------------------------- runner
 
     Private Sub RunTest(ByVal id As Long, ByVal name As String, ByVal needsSample As Boolean)
@@ -887,6 +991,7 @@ Caught:
             Case 21: T_CleanAllowsEmptyFolder
             Case 22: T_ExportRefusesSettingsFolder
             Case 23: T_ImportMissingInput
+            Case 24: T_LineEndingNormalization
         End Select
         Say "  [PASS] " & name
         mPassed = mPassed + 1
@@ -949,6 +1054,7 @@ Failed:
         RunTest 21, "Clean-first allows an empty folder", False
         RunTest 22, "Export refuses Settings-as-folder", False
         RunTest 23, "Import rejects a missing input file", False
+        RunTest 24, "Line-ending normalization (Sources code files only)", False
 
         On Error Resume Next
         DeleteTree mTmpDir
